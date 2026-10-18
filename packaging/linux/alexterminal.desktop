@@ -1,0 +1,18 @@
+[Desktop Entry]
+Type=Application
+Name=AlexTerminal
+GenericName=Terminal
+Comment=Terminal with a tab tree, pane grid and persistent sessions
+Comment[ru]=Терминал с деревом вкладок, сеткой панелей и сохраняемыми сессиями
+Exec=alexterminal
+Icon=alexterminal
+Terminal=false
+Categories=System;TerminalEmulator;Utility;
+Keywords=shell;terminal;console;ssh;
+StartupWMClass=alexterminal
+Actions=new-window;
+
+[Desktop Action new-window]
+Name=New Window
+Name[ru]=Новое окно
+Exec=alexterminal --new-window

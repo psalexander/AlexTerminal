@@ -1,0 +1,60 @@
+[package]
+name = "at-app"
+description = "AlexTerminal GUI"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "alexterminal"
+path = "src/main.rs"
+
+[dependencies]
+at-core.workspace = true
+at-proto.workspace = true
+at-client.workspace = true
+at-daemon.workspace = true
+iced.workspace = true
+fluent-templates.workspace = true
+sys-locale.workspace = true
+clap.workspace = true
+crossbeam-channel.workspace = true
+parking_lot.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+tracing-appender.workspace = true
+regex.workspace = true
+anyhow.workspace = true
+libc.workspace = true
+serde_json.workspace = true
+toml.workspace = true
+png = "0.18"
+tokio = { version = "1", features = ["time", "rt"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6"
+objc2-app-kit = { version = "0.3", features = ["NSApplication", "NSDockTile", "NSResponder"] }
+objc2-foundation = { version = "0.3", features = ["NSString", "NSThread"] }
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[package.metadata.deb]
+name = "alexterminal"
+maintainer = "AlexTerminal contributors"
+section = "x11"
+priority = "optional"
+extended-description = "Terminal emulator with a nested tab sidebar, up to four panes per tab (stack or 2x2 grid), per-pane command history and a session daemon that keeps shells alive between launches."
+assets = [
+    ["target/release/alexterminal", "usr/bin/", "755"],
+    ["target/release/alexterminal-server", "usr/bin/", "755"],
+    ["../../packaging/linux/alexterminal.desktop", "usr/share/applications/", "644"],
+    ["../../packaging/linux/alexterminal-server.service", "usr/share/doc/alexterminal/", "644"],
+    ["../../target/icons/256.png", "usr/share/icons/hicolor/256x256/apps/alexterminal.png", "644"],
+    ["../../target/icons/512.png", "usr/share/icons/hicolor/512x512/apps/alexterminal.png", "644"],
+    ["../../target/icons/128.png", "usr/share/icons/hicolor/128x128/apps/alexterminal.png", "644"],
+    ["../../target/icons/48.png", "usr/share/icons/hicolor/48x48/apps/alexterminal.png", "644"],
+    ["../../target/icons/32.png", "usr/share/icons/hicolor/32x32/apps/alexterminal.png", "644"],
+    ["../../target/icons/16.png", "usr/share/icons/hicolor/16x16/apps/alexterminal.png", "644"],
+    ["../../assets/fonts/*.ttf", "usr/share/alexterminal/fonts/", "644"],
+]

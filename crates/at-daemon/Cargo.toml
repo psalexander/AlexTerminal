@@ -1,0 +1,27 @@
+[package]
+name = "at-daemon"
+description = "AlexTerminal session daemon (alexterminal-server)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "alexterminal-server"
+path = "src/bin/alexterminal-server.rs"
+
+[dependencies]
+at-core.workspace = true
+at-proto.workspace = true
+at-term.workspace = true
+crossbeam-channel.workspace = true
+parking_lot.workspace = true
+anyhow.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+tracing-appender.workspace = true
+libc.workspace = true
+sys-locale.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

@@ -1,0 +1,154 @@
+# AlexTerminal — English UI strings
+
+tab-untitled = shell
+pane-exited = Process exited with code { $code }. Enter restarts the shell.
+reconnect-question = Reconnect to { $host }?
+search-placeholder = Find
+search-none = No matches
+search-invalid = Invalid pattern
+
+button-cancel = Cancel
+button-close = Close
+button-save = Save
+button-paste = Paste
+button-reconnect = Reconnect
+button-no = No
+button-restart = Restart
+button-keep-sessions = Close, keep sessions
+button-end-sessions = End sessions
+
+confirm-busy-body = Running commands: { $running }. Remote connections: { $remote }.
+confirm-close-tab-title = Close “{ $title }”?
+confirm-close-pane-title = Close this pane?
+confirm-close-window-title = Close the window?
+confirm-close-window-ask = Sessions can keep running in the background and come back on the next launch.
+confirm-quit-title = Quit and end all sessions?
+confirm-paste-title = Paste multiple lines?
+confirm-paste-body = { $lines ->
+    [one] The text has { $lines } line and may run as a command.
+   *[other] The text has { $lines } lines and may run as several commands.
+}
+
+menu-close-others = Close Other Groups
+menu-close-group = Close Group
+menu-move-to-window = Move to Window…
+menu-group-on = Show Group Tabs Together
+menu-group-off = Show Group Tabs One by One
+
+picker-commands = Command Palette
+picker-profiles = New Tab from Profile
+picker-history = Command History
+picker-history-hint = ↩ insert · ⌘↩ run
+picker-detached = Detached Tabs
+picker-move-to-window = Move Tab to Window
+picker-new-window = New Window
+picker-window-n = Window { $n }
+picker-placeholder = Type to filter
+picker-empty = Nothing found
+
+notice-copied = Copied { $text }
+notice-cwd-missing = Folder { $path } is gone; opened the home folder
+notice-grid-needs-four = The 2×2 grid needs four panes
+notice-max-panes = A tab holds at most four panes
+notice-group-needs-children = The group has a single tab
+notice-no-detached = No detached tabs
+notice-remote-folder = Not available in a remote session
+notice-restored-backup = Session restored from backup: { $path }
+notice-session-unreadable = Saved session is unreadable, started clean: { $path }
+notice-settings-saved = Settings saved
+notice-reconnecting = Session server restarted, reconnecting…
+
+error-config = Config error: { $error }
+error-open = Cannot open: { $error }
+error-server-lost = lost connection to the session server ({ $reason })
+
+settings-title = Settings
+settings-tab-appearance = Appearance
+settings-tab-terminal = Terminal
+settings-tab-session = Session
+settings-tab-profiles = Profiles
+settings-tab-keys = Keys
+settings-tab-advanced = Advanced
+settings-invalid = Invalid value: { $field }
+settings-language = Language
+settings-lang-system = System
+settings-lang-en = English
+settings-lang-ru = Russian
+settings-theme = Theme
+settings-theme-auto = Auto (follow system)
+settings-font = Font
+settings-font-active = In use: { $font }
+settings-font-size = Font size
+settings-line-height = Line height
+settings-cursor = Cursor
+settings-cursor-block = Block
+settings-cursor-underline = Underline
+settings-cursor-bar = Bar
+settings-padding = Pane padding
+settings-sidebar-width = Sidebar width
+settings-cursor-blink = Blinking cursor
+settings-ligatures = Font ligatures
+settings-bold-bright = Bold text in bright colors
+settings-title-bar = Pane title bars
+settings-expand-single = Show group header for single-tab groups
+settings-animate = Animate indicators
+settings-shell = Shell
+settings-scrollback = Scrollback lines
+settings-bell = Bell
+settings-bell-visual = Visual
+settings-bell-sound = Sound
+settings-bell-both = Visual and sound
+settings-bell-none = Off
+settings-attention = Attention after (seconds)
+settings-new-tab-cwd = New tab folder
+settings-cwd-inherit = Same as current pane
+settings-cwd-home = Home folder
+settings-custom-cwd = Custom folder
+settings-option-as-alt = Option as Alt
+settings-alt-none = Off
+settings-alt-left = Left Option
+settings-alt-right = Right Option
+settings-alt-both = Both
+settings-copy-on-select = Copy on select
+settings-paste-warn = Warn before multi-line paste
+settings-url-detection = Detect links
+settings-confirm-close = Confirm closing busy tabs
+settings-restore-session = Restore session on start
+settings-restore-scrollback = Restore scrollback
+settings-restore-lines = Lines to restore
+settings-reconnect = Remote sessions after restart
+settings-reconnect-ask = Ask
+settings-reconnect-auto = Reconnect automatically
+settings-reconnect-never = Do not reconnect
+settings-close-window = Closing a window
+settings-close-window-detach = Keep sessions running
+settings-close-window-close = End its sessions
+settings-close-window-ask = Ask
+settings-confirm-quit = Confirm ending busy sessions
+settings-autosave = Autosave interval (seconds)
+settings-per-pane-history = Separate shell history per pane
+settings-history-max = History entries per pane
+settings-history-days = Keep history of closed panes (days)
+settings-autostart = Start session server at login
+settings-idle-shutdown = Stop idle server after (minutes, 0 = never)
+settings-integration = Shell integration
+settings-integration-auto = Automatic
+settings-integration-manual = Manual
+settings-integration-off = Off
+settings-wrap-ssh = Track ssh host names
+settings-editor = Editor command
+settings-file-manager = File manager command
+settings-max-fps = Max frame rate
+settings-log-level = Log level
+settings-config-path = Config file: { $path }
+settings-keys-hint = Comma-separated chords, e.g. cmd+shift+t. Empty unbinds.
+settings-keys-reset = Reset to defaults
+
+profile-name = Name
+profile-shell = Shell
+profile-cwd = Folder
+profile-command = Command
+profile-color = Color
+profile-title = Title
+profile-remote = Remote session
+profile-hint = Folder: inherit, home or a path. Color: #RRGGBB or a theme token.

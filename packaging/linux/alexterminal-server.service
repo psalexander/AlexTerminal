@@ -1,0 +1,11 @@
+# Example systemd user unit; `alexterminal-server --install-autostart` writes one too.
+[Unit]
+Description=AlexTerminal session server
+
+[Service]
+ExecStart=/usr/bin/alexterminal-server --foreground
+Restart=no
+KillMode=process
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,15 @@
+# AlexTerminal: bash is started with --rcfile pointing here. Emulate a login
+# shell's startup files, then load shell integration.
+if [[ -f /etc/profile ]]; then source /etc/profile; fi
+if [[ -f "$HOME/.bash_profile" ]]; then
+  source "$HOME/.bash_profile"
+elif [[ -f "$HOME/.bash_login" ]]; then
+  source "$HOME/.bash_login"
+elif [[ -f "$HOME/.profile" ]]; then
+  source "$HOME/.profile"
+elif [[ -f "$HOME/.bashrc" ]]; then
+  source "$HOME/.bashrc"
+fi
+if [[ -n "$ALEXTERM_INTEGRATION_DIR" ]]; then
+  source "$ALEXTERM_INTEGRATION_DIR/at.bash"
+fi

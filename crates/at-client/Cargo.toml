@@ -1,0 +1,14 @@
+[package]
+name = "at-client"
+description = "AlexTerminal client side of the daemon protocol: connect, autostart, in-process mode"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+at-core.workspace = true
+at-proto.workspace = true
+at-daemon.workspace = true
+crossbeam-channel.workspace = true
+anyhow.workspace = true
+tracing.workspace = true

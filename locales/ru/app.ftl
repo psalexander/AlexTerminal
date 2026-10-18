@@ -1,0 +1,155 @@
+# AlexTerminal — строки интерфейса на русском
+
+tab-untitled = shell
+pane-exited = Процесс завершился с кодом { $code }. Enter перезапустит shell.
+reconnect-question = Переподключиться к { $host }?
+search-placeholder = Найти
+search-none = Нет совпадений
+search-invalid = Ошибка в шаблоне
+
+button-cancel = Отмена
+button-close = Закрыть
+button-save = Сохранить
+button-paste = Вставить
+button-reconnect = Переподключиться
+button-no = Нет
+button-restart = Перезапустить
+button-keep-sessions = Закрыть, оставить сессии
+button-end-sessions = Завершить сессии
+
+confirm-busy-body = Выполняется команд: { $running }. Удалённых соединений: { $remote }.
+confirm-close-tab-title = Закрыть «{ $title }»?
+confirm-close-pane-title = Закрыть панель?
+confirm-close-window-title = Закрыть окно?
+confirm-close-window-ask = Сессии могут продолжить работу в фоне и вернутся при следующем запуске.
+confirm-quit-title = Выйти и завершить все сессии?
+confirm-paste-title = Вставить несколько строк?
+confirm-paste-body = { $lines ->
+    [one] В тексте { $lines } строка, он может выполниться как команда.
+    [few] В тексте { $lines } строки, они могут выполниться как несколько команд.
+   *[other] В тексте { $lines } строк, они могут выполниться как несколько команд.
+}
+
+menu-close-others = Закрыть остальные группы
+menu-close-group = Закрыть группу
+menu-move-to-window = Переместить в окно…
+menu-group-on = Показать вкладки группы вместе
+menu-group-off = Показывать вкладки группы по одной
+
+picker-commands = Палитра команд
+picker-profiles = Новая вкладка из профиля
+picker-history = История команд
+picker-history-hint = ↩ вставить · ⌘↩ выполнить
+picker-detached = Отсоединённые вкладки
+picker-move-to-window = Переместить вкладку в окно
+picker-new-window = Новое окно
+picker-window-n = Окно { $n }
+picker-placeholder = Начните вводить для фильтра
+picker-empty = Ничего не найдено
+
+notice-copied = Скопировано: { $text }
+notice-cwd-missing = Каталог { $path } недоступен, открыт домашний
+notice-grid-needs-four = Сетка 2×2 доступна только при четырёх панелях
+notice-max-panes = Во вкладке может быть не больше четырёх панелей
+notice-group-needs-children = В группе только одна вкладка
+notice-no-detached = Нет отсоединённых вкладок
+notice-remote-folder = Недоступно в удалённой сессии
+notice-restored-backup = Сессия восстановлена из резервной копии: { $path }
+notice-session-unreadable = Сохранённая сессия повреждена, запуск с чистого листа: { $path }
+notice-settings-saved = Настройки сохранены
+notice-reconnecting = Сервер сессий перезапущен, переподключаюсь…
+
+error-config = Ошибка конфигурации: { $error }
+error-open = Не удалось открыть: { $error }
+error-server-lost = потеряно соединение с сервером сессий ({ $reason })
+
+settings-title = Настройки
+settings-tab-appearance = Внешний вид
+settings-tab-terminal = Терминал
+settings-tab-session = Сессия
+settings-tab-profiles = Профили
+settings-tab-keys = Клавиши
+settings-tab-advanced = Дополнительно
+settings-invalid = Неверное значение: { $field }
+settings-language = Язык
+settings-lang-system = Системный
+settings-lang-en = Английский
+settings-lang-ru = Русский
+settings-theme = Тема
+settings-theme-auto = Авто (как в системе)
+settings-font = Шрифт
+settings-font-active = Используется: { $font }
+settings-font-size = Размер шрифта
+settings-line-height = Межстрочный интервал
+settings-cursor = Курсор
+settings-cursor-block = Блок
+settings-cursor-underline = Подчёркивание
+settings-cursor-bar = Черта
+settings-padding = Отступ в панели
+settings-sidebar-width = Ширина сайдбара
+settings-cursor-blink = Мигающий курсор
+settings-ligatures = Лигатуры шрифта
+settings-bold-bright = Жирный текст яркими цветами
+settings-title-bar = Заголовки панелей
+settings-expand-single = Показывать группу из одной вкладки развёрнутой
+settings-animate = Анимировать индикаторы
+settings-shell = Shell
+settings-scrollback = Строк прокрутки
+settings-bell = Звонок
+settings-bell-visual = Визуальный
+settings-bell-sound = Звук
+settings-bell-both = Визуальный и звук
+settings-bell-none = Выключен
+settings-attention = Внимание через (секунд)
+settings-new-tab-cwd = Папка новой вкладки
+settings-cwd-inherit = Как у текущей панели
+settings-cwd-home = Домашняя папка
+settings-custom-cwd = Своя папка
+settings-option-as-alt = Option как Alt
+settings-alt-none = Выключено
+settings-alt-left = Левый Option
+settings-alt-right = Правый Option
+settings-alt-both = Оба
+settings-copy-on-select = Копировать при выделении
+settings-paste-warn = Предупреждать о многострочной вставке
+settings-url-detection = Распознавать ссылки
+settings-confirm-close = Подтверждать закрытие занятых вкладок
+settings-restore-session = Восстанавливать сессию при запуске
+settings-restore-scrollback = Восстанавливать прокрутку
+settings-restore-lines = Строк для восстановления
+settings-reconnect = Удалённые сессии после перезапуска
+settings-reconnect-ask = Спрашивать
+settings-reconnect-auto = Переподключать автоматически
+settings-reconnect-never = Не переподключать
+settings-close-window = Закрытие окна
+settings-close-window-detach = Оставлять сессии работать
+settings-close-window-close = Завершать его сессии
+settings-close-window-ask = Спрашивать
+settings-confirm-quit = Подтверждать завершение занятых сессий
+settings-autosave = Интервал автосохранения (секунд)
+settings-per-pane-history = Отдельная история shell для каждой панели
+settings-history-max = Записей истории на панель
+settings-history-days = Хранить историю закрытых панелей (дней)
+settings-autostart = Запускать сервер сессий при входе
+settings-idle-shutdown = Останавливать простаивающий сервер через (минут, 0 — никогда)
+settings-integration = Интеграция с shell
+settings-integration-auto = Автоматически
+settings-integration-manual = Вручную
+settings-integration-off = Выключена
+settings-wrap-ssh = Отслеживать хосты ssh
+settings-editor = Команда редактора
+settings-file-manager = Команда файлового менеджера
+settings-max-fps = Максимум кадров в секунду
+settings-log-level = Уровень логов
+settings-config-path = Файл настроек: { $path }
+settings-keys-hint = Сочетания через запятую, например cmd+shift+t. Пусто — без сочетания.
+settings-keys-reset = Сбросить по умолчанию
+
+profile-name = Имя
+profile-shell = Shell
+profile-cwd = Папка
+profile-command = Команда
+profile-color = Цвет
+profile-title = Заголовок
+profile-remote = Удалённая сессия
+profile-hint = Папка: inherit, home или путь. Цвет: #RRGGBB или токен темы.
