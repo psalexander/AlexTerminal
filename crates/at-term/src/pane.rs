@@ -1,5 +1,6 @@
 //! A live terminal pane.
 
+use crate::clear::ClearScanner;
 use crate::input;
 use crate::osc::{OscEvent, OscScanner};
 use crate::shell::{self, ShellLaunch};
@@ -257,15 +258,27 @@ impl Pane {
                 let mut buf = vec![0u8; 64 * 1024];
                 let mut scanner = OscScanner::new();
                 let mut events = Vec::new();
+                let mut clears = ClearScanner::new();
+                let mut cuts = Vec::new();
                 loop {
                     match reader.read(&mut buf) {
                         Ok(0) => break,
                         Ok(n) => {
                             let bytes = &buf[..n];
                             scanner.feed(bytes, &mut events);
+                            cuts.clear();
+                            clears.feed(bytes, &mut cuts);
                             {
                                 let mut t = term.lock();
-                                processor.advance(&mut *t, bytes);
+                                let mut from = 0;
+                                for &cut in &cuts {
+                                    processor.advance(&mut *t, &bytes[from..cut]);
+                                    // `clear`: drop the screen the emulator just saved.
+                                    use alacritty_terminal::vte::ansi::Handler;
+                                    t.clear_screen(ansi::ClearMode::Saved);
+                                    from = cut;
+                                }
+                                processor.advance(&mut *t, &bytes[from..]);
                             }
                             for ev in events.drain(..) {
                                 let _ = tx.send(PaneEvent::Osc(id, ev));
@@ -1219,6 +1232,20 @@ mod tests {
             preload,
             palette: Palette::from_theme(&at_core::theme::Theme::dusk()),
         }
+    }
+
+    #[test]
+    fn clear_drops_scrollback() {
+        let dir = tempfile::tempdir().unwrap();
+        let (tx, _rx) = crossbeam_channel::unbounded();
+        let p = Pane::spawn(opts(PaneId::new(), "/bin/sh", vec![], dir.path(), None), tx).unwrap();
+        p.text("for i in $(seq 1 60); do echo line$i; done\r");
+        assert!(wait_for(&p, "line60"), "{}", p.screen_text());
+        assert!(p.export_scrollback(1000).unwrap().contains("line1\r\n"));
+        p.text("printf '\\033[3J\\033[H\\033[2J'; echo cleared\r");
+        assert!(wait_for(&p, "cleared"), "{}", p.screen_text());
+        let exported = p.export_scrollback(1000).unwrap();
+        assert!(!exported.contains("line"), "{exported}");
     }
 
     fn wait_for(p: &Pane, needle: &str) -> bool {
