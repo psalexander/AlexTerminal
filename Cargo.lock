@@ -374,7 +374,7 @@ dependencies = [
 
 [[package]]
 name = "at-app"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "at-client",
@@ -404,7 +404,7 @@ dependencies = [
 
 [[package]]
 name = "at-client"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "at-core",
@@ -416,7 +416,7 @@ dependencies = [
 
 [[package]]
 name = "at-core"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "dirs",
@@ -431,7 +431,7 @@ dependencies = [
 
 [[package]]
 name = "at-daemon"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "at-core",
@@ -450,7 +450,7 @@ dependencies = [
 
 [[package]]
 name = "at-proto"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "at-core",
  "rmp-serde",
@@ -459,7 +459,7 @@ dependencies = [
 
 [[package]]
 name = "at-term"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "alacritty_terminal",
  "anyhow",
