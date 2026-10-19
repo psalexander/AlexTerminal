@@ -80,6 +80,8 @@ pub enum Message {
     ScriptNext,
     Shot(PathBuf, window::Screenshot),
     Noop,
+    /// Picked in the macOS application menu.
+    MenuAction(Action),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -96,8 +98,6 @@ pub enum MenuItem {
     Collapse,
     GroupMode(GroupMode),
     Outdent,
-    Quit,
-    QuitAndEndSessions,
 }
 
 pub struct TabDrag {
@@ -240,6 +240,7 @@ pub struct Initial {
 pub struct App {
     pub tx: Sender<ClientMsg>,
     pub in_process: bool,
+    menu_installed: bool,
     pub config: Config,
     pub config_mtime: Option<SystemTime>,
     pub keymap: Keymap,
@@ -337,6 +338,7 @@ impl App {
             windows: BTreeMap::new(),
             by_model: HashMap::new(),
             focused: None,
+            menu_installed: false,
             mods: Modifiers::default(),
             alt_left: false,
             alt_right: false,
@@ -523,6 +525,7 @@ impl App {
     pub fn subscription(&self) -> Subscription<Message> {
         let mut subs = vec![
             Subscription::run_with(self.conn_gen, crate::conn::stream),
+            Subscription::run(crate::menu::stream),
             event::listen_with(|e, status, id| match &e {
                 Event::Keyboard(_) | Event::Window(_) => Some(Message::Event(id, e, status)),
                 Event::Mouse(mouse::Event::ButtonReleased(_))
@@ -560,6 +563,15 @@ impl App {
     // ----- update -----
 
     pub fn update(&mut self, msg: Message) -> Task<Message> {
+        if !self.menu_installed {
+            self.menu_installed = crate::menu::install(&[
+                (Action::Quit, self.action_label(Action::Quit)),
+                (
+                    Action::QuitAndEndSessions,
+                    self.action_label(Action::QuitAndEndSessions),
+                ),
+            ]);
+        }
         let task = self.handle(msg);
         let t2 = self.after_update();
         Task::batch([task, t2])
@@ -570,8 +582,9 @@ impl App {
             Message::Server(m) => self.on_server(m),
             Message::Disconnected(why) => {
                 tracing::error!("disconnected from server: {why}");
+                // Quitting (e.g. "Quit and end all sessions"): the server is gone, so go too.
                 if self.exiting {
-                    return Task::none();
+                    return iced::exit();
                 }
                 if self.in_process || self.reconnecting {
                     self.exiting = true;
@@ -661,6 +674,12 @@ impl App {
                 Task::none()
             }
             Message::Act(id, a) => self.perform(id, a),
+            Message::MenuAction(a) => {
+                match self.focused.or_else(|| self.windows.keys().next().copied()) {
+                    Some(w) => self.perform(w, a),
+                    None => Task::none(),
+                }
+            }
             Message::SelectTab(id, t) => {
                 if let Some(w) = self.windows.get_mut(&id) {
                     w.menu = None;
@@ -1175,10 +1194,8 @@ impl App {
                 tracing::error!("server error: {e}");
             }
             ServerMsg::ShuttingDown => {
-                if !self.exiting {
-                    self.exiting = true;
-                    return iced::exit();
-                }
+                self.exiting = true;
+                return iced::exit();
             }
             ServerMsg::Pong => {}
         }
@@ -1945,8 +1962,6 @@ impl App {
             MenuItem::ToWindow => self.open_move_to_window(id, tab),
             MenuItem::Collapse => self.cmd(Cmd::ToggleCollapse { tab }),
             MenuItem::GroupMode(mode) => self.cmd(Cmd::SetGroupMode { tab, mode }),
-            MenuItem::Quit => return self.perform(id, Action::Quit),
-            MenuItem::QuitAndEndSessions => return self.perform(id, Action::QuitAndEndSessions),
         }
         Task::none()
     }

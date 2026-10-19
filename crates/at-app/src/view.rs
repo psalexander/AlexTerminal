@@ -522,33 +522,17 @@ impl App {
                 self.i18n.t("menu-close-others"),
                 String::new(),
                 MenuItem::CloseOthers,
-            ))
-            .push(
-                container(space())
-                    .height(1.0)
-                    .width(Length::Fill)
-                    .style(move |_| style::bg(c(t.ui.border))),
-            )
-            .push(item(
-                self.action_label(Action::Quit),
-                km(Action::Quit),
-                MenuItem::Quit,
-            ))
-            .push(item(
-                self.action_label(Action::QuitAndEndSessions),
-                km(Action::QuitAndEndSessions),
-                MenuItem::QuitAndEndSessions,
             ));
         let panel = container(col)
-            .width(300.0)
+            .width(260.0)
             .padding(4)
             .style(move |_| style::menu(t));
         let catcher = mouse_area(container(space()).width(Length::Fill).height(Length::Fill))
             .on_press(Message::CloseMenu(id))
             .on_right_press(Message::CloseMenu(id));
         let w = &self.windows[&id];
-        let x = at.x.min(w.size.width - 310.0).max(4.0);
-        let y = at.y.min(w.size.height - 500.0).max(4.0);
+        let x = at.x.min(w.size.width - 270.0).max(4.0);
+        let y = at.y.min(w.size.height - 440.0).max(4.0);
         stack![catcher, pin(opaque(panel)).x(x).y(y)].into()
     }
 

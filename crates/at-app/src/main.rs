@@ -7,6 +7,7 @@ mod i18n;
 mod keys;
 mod layout;
 mod links;
+mod menu;
 mod metrics;
 mod platform;
 mod settings;
