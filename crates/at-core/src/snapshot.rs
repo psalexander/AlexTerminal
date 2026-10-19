@@ -65,6 +65,8 @@ pub struct TabSnap {
     #[serde(default)]
     pub group_view: bool,
     #[serde(default)]
+    pub group_tiles: bool,
+    #[serde(default)]
     pub group_sizes: Vec<f32>,
     #[serde(default)]
     pub active_child: Option<TabId>,
@@ -140,6 +142,7 @@ fn tab_to_snap(t: &TabNode, panes: &HashMap<PaneId, PaneInfo>) -> TabSnap {
             .collect(),
         children: t.children.iter().map(|c| tab_to_snap(c, panes)).collect(),
         group_view: t.group_view,
+        group_tiles: t.group_tiles,
         group_sizes: t.group_sizes.clone(),
         active_child: t.active_child,
     }
@@ -192,6 +195,7 @@ impl Session {
                 zoomed: false,
                 children: t.children.iter().map(|c| tab(c, out)).collect(),
                 group_view: t.group_view,
+                group_tiles: t.group_tiles,
                 group_sizes: t.group_sizes.clone(),
                 active_child: t.active_child,
             };

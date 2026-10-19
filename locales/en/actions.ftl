@@ -31,6 +31,7 @@ action-indent-tab = Move Tab into Group Above
 action-outdent-tab = Move Tab to Its Own Group
 action-toggle-collapse = Collapse or Expand Group
 action-toggle-group-view = Group Tabs Together or One by One
+action-toggle-group-tiles = Group Tabs as Tiles or Stacked
 action-toggle-sidebar = Show or Hide Sidebar
 action-new-pane = New Pane
 action-toggle-layout = Stack ↔ 2×2 Grid

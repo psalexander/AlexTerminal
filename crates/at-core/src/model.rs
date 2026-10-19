@@ -19,6 +19,18 @@ pub enum Layout {
     Grid,
 }
 
+/// How the right side shows the tabs of a group.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum GroupMode {
+    /// Only the selected tab.
+    Single,
+    /// All tabs, one under another.
+    Stack,
+    /// All tabs as tiles.
+    Tiles,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Direction {
     Up,
@@ -52,6 +64,9 @@ pub struct TabNode {
     /// Show this tab and all nested tabs stacked in one view.
     #[serde(default)]
     pub group_view: bool,
+    /// Group view arranges the tabs as tiles instead of one under another.
+    #[serde(default)]
+    pub group_tiles: bool,
     /// Section heights in group view: fractions, one per child tab.
     #[serde(default)]
     pub group_sizes: Vec<f32>,
@@ -76,6 +91,7 @@ impl TabNode {
             zoomed: false,
             children: Vec::new(),
             group_view: false,
+            group_tiles: false,
             group_sizes: Vec::new(),
             active_child: None,
         }
@@ -99,6 +115,7 @@ impl TabNode {
             zoomed: false,
             children: vec![child],
             group_view: false,
+            group_tiles: false,
             group_sizes: Vec::new(),
             active_child: Some(id),
         }
@@ -1134,6 +1151,33 @@ impl Workspace {
         Some(gid)
     }
 
+    /// Display mode of the group holding `tab`.
+    pub fn group_mode(&self, tab: TabId) -> GroupMode {
+        match self.group_of(tab).and_then(|g| self.tab(g)) {
+            Some(g) if g.group_view && g.group_tiles => GroupMode::Tiles,
+            Some(g) if g.group_view => GroupMode::Stack,
+            _ => GroupMode::Single,
+        }
+    }
+
+    /// Sets the display mode of the group holding `tab`. Returns the group.
+    pub fn set_group_mode(&mut self, tab: TabId, mode: GroupMode) -> Option<TabId> {
+        let gid = self.group_of(tab)?;
+        let g = self.tab_mut(gid)?;
+        g.group_view = mode != GroupMode::Single;
+        g.group_tiles = mode == GroupMode::Tiles;
+        g.group_sizes.clear();
+        if g.group_view {
+            g.collapsed = false;
+        }
+        Some(gid)
+    }
+
+    /// True when the group holding `tab` is shown as tiles.
+    pub fn group_tiled(&self, tab: TabId) -> bool {
+        self.group_root(tab).is_some() && self.group_mode(tab) == GroupMode::Tiles
+    }
+
     // ----- invariants -----
 
     /// Normalizes any tree (including snapshots from older versions) into
@@ -1144,6 +1188,7 @@ impl Workspace {
             let kids = std::mem::take(&mut n.children);
             if !n.panes.is_empty() {
                 n.group_view = false;
+                n.group_tiles = false;
                 n.group_sizes.clear();
                 n.active_child = None;
                 n.collapsed = false;

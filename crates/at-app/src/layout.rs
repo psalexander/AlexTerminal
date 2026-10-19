@@ -1,4 +1,5 @@
-//! Pixel layout of panes inside a tab (stack or 2×2 grid) and its splitters.
+//! Pixel layout of panes inside a tab (stack or 2×2 grid), group sections (stacked or
+//! tiled) and their splitters.
 
 use at_core::PaneId;
 use at_core::TabId;
@@ -190,6 +191,13 @@ pub fn scene(ws: &Workspace, active: TabId, w: f32, h: f32) -> Scene {
     };
     let entries: Vec<(TabId, Option<Rectangle>, Rectangle, usize)> = match group {
         None => vec![(active, None, full, 0)],
+        Some(root) if ws.tab(root).map(|g| g.group_tiles).unwrap_or(false) => {
+            tiles(ws.group_members(root).len(), w, h)
+                .into_iter()
+                .zip(ws.group_members(root))
+                .map(|((header, body), t)| (t, Some(header), body, 0))
+                .collect()
+        }
         Some(root) => {
             let members = ws.group_members(root);
             let sizes = ws.group_sizes(root);
@@ -257,6 +265,50 @@ pub fn scene(ws: &Workspace, active: TabId, w: f32, h: f32) -> Scene {
         });
     }
     sc
+}
+
+/// Header and body rectangles of `n` equal tiles: a near-square grid, wider than
+/// tall, with the last row stretched when it is not full.
+fn tiles(n: usize, w: f32, h: f32) -> Vec<(Rectangle, Rectangle)> {
+    if n == 0 {
+        return Vec::new();
+    }
+    let cols = (n as f32).sqrt().ceil() as usize;
+    let rows = n.div_ceil(cols);
+    let row_h = ((h - GROUP_GAP * (rows as f32 - 1.0)) / rows as f32).max(1.0);
+    let mut out = Vec::with_capacity(n);
+    for r in 0..rows {
+        let in_row = (n - r * cols).min(cols);
+        let y = (r as f32 * (row_h + GROUP_GAP)).round();
+        let th = if r + 1 == rows {
+            (h - y).max(1.0)
+        } else {
+            row_h.round()
+        };
+        let col_w = ((w - GROUP_GAP * (in_row as f32 - 1.0)) / in_row as f32).max(1.0);
+        for c in 0..in_row {
+            let x = (c as f32 * (col_w + GROUP_GAP)).round();
+            let tw = if c + 1 == in_row {
+                (w - x).max(1.0)
+            } else {
+                col_w.round()
+            };
+            let header = Rectangle {
+                x,
+                y,
+                width: tw,
+                height: SECTION_HEADER.min(th),
+            };
+            let body = Rectangle {
+                x,
+                y: y + header.height,
+                width: tw,
+                height: (th - header.height).max(1.0),
+            };
+            out.push((header, body));
+        }
+    }
+    out
 }
 
 /// Grid size in cells for a pane rectangle.
@@ -347,6 +399,37 @@ mod tests {
                 .count(),
             1
         );
+    }
+
+    #[test]
+    fn group_tiles() {
+        use at_core::model::{GroupMode, WindowNode};
+        let mut ws = Workspace::default();
+        let win = WindowNode::new(220.0);
+        let wid = win.id;
+        ws.windows.push(win);
+        let a = TabNode::new(PaneId::new(), "default");
+        let ia = a.id;
+        ws.new_group(wid, None, a).unwrap();
+        for _ in 0..2 {
+            ws.add_to_group(ia, TabNode::new(PaneId::new(), "default"));
+        }
+        assert!(ws.set_group_mode(ia, GroupMode::Tiles).is_some());
+        assert!(ws.group_tiled(ia));
+        let sc = scene(&ws, ia, 801.0, 601.0);
+        assert_eq!(sc.sections.len(), 3);
+        assert!(sc.splitters.is_empty());
+        let (s0, s1, s2) = (&sc.sections[0], &sc.sections[1], &sc.sections[2]);
+        // Two tiles side by side on top, the third spans the bottom row.
+        assert_eq!(s0.body.y, s1.body.y);
+        assert!(s0.body.x + s0.body.width < s1.body.x);
+        assert!((s1.body.x + s1.body.width - 801.0).abs() < 0.5);
+        assert_eq!(s2.body.x, 0.0);
+        assert!((s2.body.width - 801.0).abs() < 0.5);
+        assert!((s2.body.y + s2.body.height - 601.0).abs() < 0.5);
+        ws.set_group_mode(ia, GroupMode::Stack);
+        assert!(!ws.group_tiled(ia));
+        assert!(ws.group_root(ia).is_some());
     }
 
     #[test]

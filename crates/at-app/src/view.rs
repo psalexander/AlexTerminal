@@ -5,7 +5,7 @@ use crate::layout::{self, SplitKind};
 use crate::style::{self, c, ca};
 use crate::term_view::{Style as TStyle, TermCanvas};
 use at_core::keymap::Action;
-use at_core::model::DropPosition;
+use at_core::model::{DropPosition, GroupMode};
 use at_core::pane::{PaneState, tilde_path};
 use at_core::{PaneId, TabId};
 use iced::widget::{
@@ -227,7 +227,8 @@ impl App {
                 );
             }
             if v.is_group && tn.group_view && tn.children.len() > 1 {
-                r = r.push(text("▤").size(12).color(c(t.ui.accent)));
+                let glyph = if tn.group_tiles { "▦" } else { "▤" };
+                r = r.push(text(glyph).size(12).color(c(t.ui.accent)));
             }
             if tn.panes.len() > 1 {
                 let idx = tn.active_index() + 1;
@@ -442,17 +443,35 @@ impl App {
                 km(Action::ToggleCollapse),
                 MenuItem::Collapse,
             ));
-            let on = self.ws.group_root(tab).is_some();
-            let label = if on {
-                self.i18n.t("menu-group-off")
-            } else {
-                self.i18n.t("menu-group-on")
-            };
-            col = col.push(item(
-                label,
-                km(Action::ToggleGroupView),
-                MenuItem::GroupView,
-            ));
+            col = col.push(
+                container(
+                    text(self.i18n.t("menu-group-mode"))
+                        .size(11)
+                        .color(c(t.ui.fg_dim)),
+                )
+                .padding([4, 10]),
+            );
+            let cur = self.ws.group_mode(tab);
+            for (mode, key, hint) in [
+                (GroupMode::Single, "menu-group-single", String::new()),
+                (
+                    GroupMode::Stack,
+                    "menu-group-stack",
+                    km(Action::ToggleGroupView),
+                ),
+                (
+                    GroupMode::Tiles,
+                    "menu-group-tiles",
+                    km(Action::ToggleGroupTiles),
+                ),
+            ] {
+                let mark = if mode == cur { "✓  " } else { "    " };
+                col = col.push(item(
+                    format!("{mark}{}", self.i18n.t(key)),
+                    hint,
+                    MenuItem::GroupMode(mode),
+                ));
+            }
             if !is_group {
                 col = col.push(item(
                     self.action_label(Action::OutdentTab),
@@ -513,7 +532,7 @@ impl App {
             .on_right_press(Message::CloseMenu(id));
         let w = &self.windows[&id];
         let x = at.x.min(w.size.width - 270.0).max(4.0);
-        let y = at.y.min(w.size.height - 330.0).max(4.0);
+        let y = at.y.min(w.size.height - 440.0).max(4.0);
         stack![catcher, pin(opaque(panel)).x(x).y(y)].into()
     }
 

@@ -1135,6 +1135,9 @@ impl Server {
             Cmd::ToggleGroupView { tab } => {
                 self.ws.toggle_group_view(tab);
             }
+            Cmd::SetGroupMode { tab, mode } => {
+                self.ws.set_group_mode(tab, mode);
+            }
             Cmd::SetGroupSizes { root, sizes } => {
                 self.ws.set_group_sizes(root, sizes);
             }

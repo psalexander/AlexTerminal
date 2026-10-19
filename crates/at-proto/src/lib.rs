@@ -2,7 +2,7 @@
 //! `u32` big-endian length followed by a MessagePack body.
 
 use at_core::history::HistoryEntry;
-use at_core::model::{Direction, DropPosition, WindowGeom, Workspace};
+use at_core::model::{Direction, DropPosition, GroupMode, WindowGeom, Workspace};
 use at_core::pane::PaneInfo;
 use at_core::{PaneId, TabId, WindowId};
 use serde::{Deserialize, Serialize};
@@ -12,7 +12,7 @@ use std::io::{Read, Write};
 /// older server rejects unknown commands; clients then replace it automatically.
 /// `ClientMsg::Hello` and `ClientMsg::Shutdown` must keep their names and shape
 /// forever (see the `stable_control_messages` test).
-pub const PROTO_VERSION: u32 = 2;
+pub const PROTO_VERSION: u32 = 3;
 
 /// Parses the server version out of a `protocol mismatch` error.
 pub fn mismatch_server_version(error: &str) -> Option<u32> {
@@ -299,6 +299,10 @@ pub enum Cmd {
     },
     ToggleGroupView {
         tab: TabId,
+    },
+    SetGroupMode {
+        tab: TabId,
+        mode: GroupMode,
     },
     SetGroupSizes {
         root: TabId,

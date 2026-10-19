@@ -8,7 +8,7 @@ use crate::term_view::PaneGrid;
 use crate::{keys, platform};
 use at_core::config::{Bell, CloseWindow, Config, OptionAsAlt};
 use at_core::keymap::{Action, Keymap};
-use at_core::model::{Direction, DropPosition, Workspace};
+use at_core::model::{Direction, DropPosition, GroupMode, Workspace};
 use at_core::pane::{PaneInfo, PaneState};
 use at_core::theme::Theme;
 use at_core::{PaneId, TabId, WindowId, paths};
@@ -94,7 +94,7 @@ pub enum MenuItem {
     ToNewWindow,
     ToWindow,
     Collapse,
-    GroupView,
+    GroupMode(GroupMode),
     Outdent,
 }
 
@@ -1942,7 +1942,7 @@ impl App {
             MenuItem::Outdent => self.cmd(Cmd::OutdentTab { tab }),
             MenuItem::ToWindow => self.open_move_to_window(id, tab),
             MenuItem::Collapse => self.cmd(Cmd::ToggleCollapse { tab }),
-            MenuItem::GroupView => self.cmd(Cmd::ToggleGroupView { tab }),
+            MenuItem::GroupMode(mode) => self.cmd(Cmd::SetGroupMode { tab, mode }),
         }
         Task::none()
     }
@@ -2264,6 +2264,20 @@ impl App {
                 if let Some(t) = tab {
                     if self.group_len(t) > 1 {
                         self.cmd(Cmd::ToggleGroupView { tab: t });
+                    } else {
+                        self.toast(self.i18n.t("notice-group-needs-children"));
+                    }
+                }
+            }
+            Action::ToggleGroupTiles => {
+                if let Some(t) = tab {
+                    if self.group_len(t) > 1 {
+                        let mode = if self.ws.group_mode(t) == GroupMode::Tiles {
+                            GroupMode::Stack
+                        } else {
+                            GroupMode::Tiles
+                        };
+                        self.cmd(Cmd::SetGroupMode { tab: t, mode });
                     } else {
                         self.toast(self.i18n.t("notice-group-needs-children"));
                     }

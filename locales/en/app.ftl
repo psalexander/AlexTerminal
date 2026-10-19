@@ -32,8 +32,10 @@ confirm-paste-body = { $lines ->
 menu-close-others = Close Other Groups
 menu-close-group = Close Group
 menu-move-to-window = Move to Window…
-menu-group-on = Show Group Tabs Together
-menu-group-off = Show Group Tabs One by One
+menu-group-mode = Group view
+menu-group-single = One by One
+menu-group-stack = One Under Another
+menu-group-tiles = Tiles
 
 picker-commands = Command Palette
 picker-profiles = New Tab from Profile

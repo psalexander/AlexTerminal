@@ -31,6 +31,7 @@ action-indent-tab = Перенести вкладку в группу выше
 action-outdent-tab = Вынести вкладку в отдельную группу
 action-toggle-collapse = Свернуть или развернуть группу
 action-toggle-group-view = Вкладки группы вместе или по одной
+action-toggle-group-tiles = Вкладки группы плиткой или стопкой
 action-toggle-sidebar = Показать или скрыть сайдбар
 action-new-pane = Новая панель
 action-toggle-layout = Стек ↔ сетка 2×2

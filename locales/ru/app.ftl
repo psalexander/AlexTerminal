@@ -33,8 +33,10 @@ confirm-paste-body = { $lines ->
 menu-close-others = Закрыть остальные группы
 menu-close-group = Закрыть группу
 menu-move-to-window = Переместить в окно…
-menu-group-on = Показать вкладки группы вместе
-menu-group-off = Показывать вкладки группы по одной
+menu-group-mode = Вид группы
+menu-group-single = По одной
+menu-group-stack = Одна под другой
+menu-group-tiles = Плиткой
 
 picker-commands = Палитра команд
 picker-profiles = Новая вкладка из профиля
