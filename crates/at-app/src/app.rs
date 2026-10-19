@@ -96,6 +96,8 @@ pub enum MenuItem {
     Collapse,
     GroupMode(GroupMode),
     Outdent,
+    Quit,
+    QuitAndEndSessions,
 }
 
 pub struct TabDrag {
@@ -1943,6 +1945,8 @@ impl App {
             MenuItem::ToWindow => self.open_move_to_window(id, tab),
             MenuItem::Collapse => self.cmd(Cmd::ToggleCollapse { tab }),
             MenuItem::GroupMode(mode) => self.cmd(Cmd::SetGroupMode { tab, mode }),
+            MenuItem::Quit => return self.perform(id, Action::Quit),
+            MenuItem::QuitAndEndSessions => return self.perform(id, Action::QuitAndEndSessions),
         }
         Task::none()
     }
