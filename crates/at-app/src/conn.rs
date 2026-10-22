@@ -1,4 +1,4 @@
-//! Bridge from the daemon connection (crossbeam) to an iced subscription stream.
+//! Bridge from the session server connection (crossbeam) to an iced subscription stream.
 
 use crate::app::Message;
 use at_proto::ServerMsg;
@@ -13,8 +13,7 @@ pub fn install(rx: Receiver<ServerMsg>) {
     *RX.lock() = Some(rx);
 }
 
-/// One stream per connection generation; a reconnect bumps the generation.
-pub fn stream(_generation: &u64) -> impl Stream<Item = Message> + use<> {
+pub fn stream() -> impl Stream<Item = Message> {
     iced::stream::channel(
         4096,
         async |mut out: iced::futures::channel::mpsc::Sender<Message>| {

@@ -463,7 +463,7 @@ pub enum ClientMsg {
     },
     /// The GUI is quitting; sessions keep running.
     Detach,
-    /// End all sessions and stop the daemon.
+    /// End all sessions and stop the session server (the app quits with it).
     Shutdown,
     Ping,
 }

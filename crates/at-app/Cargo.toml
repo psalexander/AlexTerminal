@@ -44,12 +44,10 @@ name = "alexterminal"
 maintainer = "AlexTerminal contributors"
 section = "x11"
 priority = "optional"
-extended-description = "Terminal emulator with a nested tab sidebar, up to four panes per tab (stack or 2x2 grid), per-pane command history and a session daemon that keeps shells alive between launches."
+extended-description = "Terminal emulator with a nested tab sidebar, up to four panes per tab (stack or 2x2 grid), per-pane command history and session restore after restart."
 assets = [
     ["target/release/alexterminal", "usr/bin/", "755"],
-    ["target/release/alexterminal-server", "usr/bin/", "755"],
     ["../../packaging/linux/alexterminal.desktop", "usr/share/applications/", "644"],
-    ["../../packaging/linux/alexterminal-server.service", "usr/share/doc/alexterminal/", "644"],
     ["../../target/icons/256.png", "usr/share/icons/hicolor/256x256/apps/alexterminal.png", "644"],
     ["../../target/icons/512.png", "usr/share/icons/hicolor/512x512/apps/alexterminal.png", "644"],
     ["../../target/icons/128.png", "usr/share/icons/hicolor/128x128/apps/alexterminal.png", "644"],

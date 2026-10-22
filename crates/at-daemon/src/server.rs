@@ -19,7 +19,6 @@ use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
 use std::path::PathBuf;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant, SystemTime};
 
 pub type ClientId = u64;
@@ -43,8 +42,6 @@ pub enum ClientEvent {
 pub struct ServerOptions {
     pub restore: bool,
     pub restore_from: Option<PathBuf>,
-    /// Set by signal handlers; the loop shuts down gracefully when it flips.
-    pub stop: Arc<AtomicBool>,
     /// Exit when the last client disconnects and no panes remain (in-process mode).
     pub exit_when_empty: bool,
 }
@@ -54,7 +51,6 @@ impl Default for ServerOptions {
         Self {
             restore: true,
             restore_from: None,
-            stop: Arc::new(AtomicBool::new(false)),
             exit_when_empty: false,
         }
     }
@@ -122,7 +118,6 @@ pub struct Server {
     last_scrollback_save: Instant,
     last_procinfo: Instant,
     last_flush: Instant,
-    empty_since: Option<Instant>,
     opts: ServerOptions,
     shutdown: bool,
     terminators: Vec<std::thread::JoinHandle<()>>,
@@ -192,7 +187,6 @@ impl Server {
             last_scrollback_save: now,
             last_procinfo: now,
             last_flush: now,
-            empty_since: None,
             opts,
             shutdown: false,
             terminators: Vec::new(),
@@ -553,9 +547,6 @@ impl Server {
                 }
             }
             self.tick();
-            if self.opts.stop.load(Ordering::Acquire) {
-                self.shutdown = true;
-            }
             if self.shutdown {
                 break;
             }
@@ -625,16 +616,8 @@ impl Server {
                 self.reload_config();
             }
         }
-        let idle_min = self.config.daemon.idle_shutdown_min;
-        if self.panes.is_empty() && self.clients.is_empty() {
-            let since = *self.empty_since.get_or_insert(now);
-            if self.opts.exit_when_empty
-                || (idle_min > 0 && now.duration_since(since) >= Duration::from_secs(idle_min * 60))
-            {
-                self.shutdown = true;
-            }
-        } else {
-            self.empty_since = None;
+        if self.opts.exit_when_empty && self.panes.is_empty() && self.clients.is_empty() {
+            self.shutdown = true;
         }
     }
 

@@ -11,7 +11,6 @@ pub struct Config {
     pub appearance: Appearance,
     pub terminal: Terminal,
     pub session: Session,
-    pub daemon: Daemon,
     pub shell_integration: ShellIntegration,
     pub integration: Integration,
     pub profiles: Vec<Profile>,
@@ -43,7 +42,6 @@ impl Default for Config {
             appearance: Appearance::default(),
             terminal: Terminal::default(),
             session: Session::default(),
-            daemon: Daemon::default(),
             shell_integration: ShellIntegration::default(),
             integration: Integration::default(),
             profiles: vec![Profile::default()],
@@ -283,13 +281,6 @@ impl Default for Session {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
-#[serde(default)]
-pub struct Daemon {
-    pub autostart: bool,
-    pub idle_shutdown_min: u64,
-}
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum IntegrationMode {
@@ -512,7 +503,6 @@ const KNOWN: &[(&str, &[&str])] = &[
             "history_retention_days",
         ],
     ),
-    ("daemon", &["autostart", "idle_shutdown_min"]),
     ("shell_integration", &["mode", "wrap_ssh"]),
     ("integration", &["editor_command", "file_manager_command"]),
     ("advanced", &["renderer", "vsync", "max_fps", "log_level"]),

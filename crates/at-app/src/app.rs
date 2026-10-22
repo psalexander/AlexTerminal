@@ -33,7 +33,6 @@ pub const SIDEBAR_TOP: f32 = 8.0;
 pub enum Message {
     Server(Arc<ServerMsg>),
     Disconnected(String),
-    Reconnected(Result<Sender<ClientMsg>, String>),
     Event(window::Id, Event, event::Status),
     Opened(window::Id),
     Tick,
@@ -239,7 +238,6 @@ pub struct Initial {
 
 pub struct App {
     pub tx: Sender<ClientMsg>,
-    pub in_process: bool,
     menu_installed: bool,
     pub config: Config,
     pub config_mtime: Option<SystemTime>,
@@ -273,8 +271,6 @@ pub struct App {
     pub exiting: bool,
     pub last_badge: usize,
     pub icon: Option<window::Icon>,
-    pub conn_gen: u64,
-    pub reconnecting: bool,
     pub script: Vec<crate::debug::Step>,
     pub script_pos: usize,
     pub script_started: bool,
@@ -301,12 +297,7 @@ fn lang_for(config: &Config) -> &'static str {
 }
 
 impl App {
-    pub fn new(
-        tx: Sender<ClientMsg>,
-        in_process: bool,
-        initial: Initial,
-        icon: Option<window::Icon>,
-    ) -> App {
+    pub fn new(tx: Sender<ClientMsg>, initial: Initial, icon: Option<window::Icon>) -> App {
         let (config, err) = Config::load_default_path();
         let (keymap, warnings) = Keymap::build(&config.keys);
         let (theme, terr) = Theme::resolve(&config.appearance.theme, system_dark());
@@ -322,7 +313,6 @@ impl App {
         }
         App {
             tx,
-            in_process,
             config_mtime: std::fs::metadata(paths::config_file())
                 .and_then(|m| m.modified())
                 .ok(),
@@ -358,8 +348,6 @@ impl App {
             exiting: false,
             last_badge: 0,
             icon,
-            conn_gen: 0,
-            reconnecting: false,
             script: crate::debug::load(),
             script_pos: 0,
             script_started: false,
@@ -524,7 +512,7 @@ impl App {
 
     pub fn subscription(&self) -> Subscription<Message> {
         let mut subs = vec![
-            Subscription::run_with(self.conn_gen, crate::conn::stream),
+            Subscription::run(crate::conn::stream),
             Subscription::run(crate::menu::stream),
             event::listen_with(|e, status, id| match &e {
                 Event::Keyboard(_) | Event::Window(_) => Some(Message::Event(id, e, status)),
@@ -564,13 +552,8 @@ impl App {
 
     pub fn update(&mut self, msg: Message) -> Task<Message> {
         if !self.menu_installed {
-            self.menu_installed = crate::menu::install(&[
-                (Action::Quit, self.action_label(Action::Quit)),
-                (
-                    Action::QuitAndEndSessions,
-                    self.action_label(Action::QuitAndEndSessions),
-                ),
-            ]);
+            self.menu_installed =
+                crate::menu::install(&[(Action::Quit, self.action_label(Action::Quit))]);
         }
         let task = self.handle(msg);
         let t2 = self.after_update();
@@ -581,70 +564,17 @@ impl App {
         match msg {
             Message::Server(m) => self.on_server(m),
             Message::Disconnected(why) => {
-                tracing::error!("disconnected from server: {why}");
-                // Quitting (e.g. "Quit and end all sessions"): the server is gone, so go too.
-                if self.exiting {
-                    return iced::exit();
-                }
-                if self.in_process || self.reconnecting {
-                    self.exiting = true;
+                // Quitting: the server is gone, so go too.
+                if !self.exiting {
+                    tracing::error!("session server stopped: {why}");
                     eprintln!(
                         "AlexTerminal: {}",
                         self.i18n.ta("error-server-lost", &[("reason", why)])
                     );
-                    return iced::exit();
                 }
-                // The session server went away (crash or upgrade): start or find one and reattach.
-                self.reconnecting = true;
-                self.toast(self.i18n.t("notice-reconnecting"));
-                Task::perform(
-                    async {
-                        tokio::task::spawn_blocking(|| {
-                            at_client::connect_checked(at_proto::ClientKind::Gui)
-                                .map(|(c, welcome)| {
-                                    // Feed the welcome back into the fresh stream.
-                                    let (tx2, rx2) = crossbeam_channel::unbounded();
-                                    let _ = tx2.send(welcome);
-                                    let rx = c.rx.clone();
-                                    std::thread::spawn(move || {
-                                        while let Ok(m) = rx.recv() {
-                                            if tx2.send(m).is_err() {
-                                                break;
-                                            }
-                                        }
-                                    });
-                                    crate::conn::install(rx2);
-                                    c.tx
-                                })
-                                .map_err(|e| e.to_string())
-                        })
-                        .await
-                        .map_err(|e| e.to_string())
-                        .and_then(|r| r)
-                    },
-                    Message::Reconnected,
-                )
+                self.exiting = true;
+                iced::exit()
             }
-            Message::Reconnected(result) => match result {
-                Ok(tx) => {
-                    self.tx = tx;
-                    self.conn_gen += 1;
-                    self.reconnecting = false;
-                    self.sent_sizes.clear();
-                    self.sent_visible.clear();
-                    self.focus_reported = None;
-                    self.grids.clear();
-                    Task::none()
-                }
-                Err(e) => {
-                    self.exiting = true;
-                    eprintln!(
-                        "AlexTerminal: {}",
-                        self.i18n.ta("error-server-lost", &[("reason", e)])
-                    );
-                    iced::exit()
-                }
-            },
             Message::Event(id, e, status) => self.on_event(id, e, status),
             Message::Opened(id) => {
                 if let Some(w) = self.windows.get_mut(&id) {
@@ -1194,8 +1124,8 @@ impl App {
                 tracing::error!("server error: {e}");
             }
             ServerMsg::ShuttingDown => {
+                // Exit on `Disconnected`, once the server has ended the shells and saved.
                 self.exiting = true;
-                return iced::exit();
             }
             ServerMsg::Pong => {}
         }
@@ -1256,10 +1186,9 @@ impl App {
             }
             tasks.push(window::close(id));
         }
+        // The last window is gone: sessions end with the app.
         if self.welcomed && self.ws.windows.is_empty() && !self.expect_window && !self.exiting {
-            self.exiting = true;
-            self.send(ClientMsg::Detach);
-            tasks.push(iced::exit());
+            tasks.push(self.confirmed(ConfirmAction::QuitAll));
         }
         Task::batch(tasks)
     }
@@ -1829,6 +1758,10 @@ impl App {
         let Some(model) = self.model_of(id) else {
             return window::close(id);
         };
+        // Closing the last window quits, and its sessions end with the app.
+        if self.ws.windows.len() <= 1 {
+            return self.perform(id, Action::Quit);
+        }
         match self.config.session.close_window {
             CloseWindow::Detach => {
                 self.cmd(Cmd::CloseWindow {
@@ -2186,15 +2119,6 @@ impl App {
             }
             Action::CloseWindow => return self.request_close_window(id),
             Action::Quit => {
-                // In-process mode has no daemon to keep sessions alive: end them cleanly.
-                if self.in_process {
-                    return self.confirmed(ConfirmAction::QuitAll);
-                }
-                self.exiting = true;
-                self.send(ClientMsg::Detach);
-                return iced::exit();
-            }
-            Action::QuitAndEndSessions => {
                 let panes = self.ws.all_panes();
                 let (r, rem) = self.busy_panes(&panes);
                 if self.config.session.confirm_quit_when_busy && r + rem > 0 {
@@ -2553,30 +2477,20 @@ impl App {
                     w.overlay = None;
                 }
             }
-            settings::Outcome::Save(config) => {
-                let autostart_changed = config.daemon.autostart != self.config.daemon.autostart;
-                match config.save(&paths::config_file()) {
-                    Ok(()) => {
-                        if autostart_changed {
-                            let exe = at_client::server_exe();
-                            if let Err(e) = at_daemon::autostart::set(config.daemon.autostart, &exe)
-                            {
-                                self.toast(e.to_string());
-                            }
-                        }
-                        self.config_mtime = std::fs::metadata(paths::config_file())
-                            .and_then(|m| m.modified())
-                            .ok();
-                        self.reload_config();
-                        self.cmd(Cmd::ReloadConfig);
-                        if let Some(w) = self.windows.get_mut(&id) {
-                            w.overlay = None;
-                        }
-                        self.toast(self.i18n.t("notice-settings-saved"));
+            settings::Outcome::Save(config) => match config.save(&paths::config_file()) {
+                Ok(()) => {
+                    self.config_mtime = std::fs::metadata(paths::config_file())
+                        .and_then(|m| m.modified())
+                        .ok();
+                    self.reload_config();
+                    self.cmd(Cmd::ReloadConfig);
+                    if let Some(w) = self.windows.get_mut(&id) {
+                        w.overlay = None;
                     }
-                    Err(e) => self.toast(self.i18n.ta("error-config", &[("error", e.to_string())])),
+                    self.toast(self.i18n.t("notice-settings-saved"));
                 }
-            }
+                Err(e) => self.toast(self.i18n.ta("error-config", &[("error", e.to_string())])),
+            },
         }
         Task::none()
     }

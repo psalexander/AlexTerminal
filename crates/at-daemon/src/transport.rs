@@ -1,5 +1,5 @@
-//! Client transports: a Unix socket for out-of-process GUIs and channels for the
-//! in-process (`--no-daemon`) mode.
+//! Client transports: channels for the app's own windows and a Unix socket through
+//! which a second `alexterminal` launch or `alexterminal list` reaches the running app.
 
 use crate::server::{ClientEvent, ClientId};
 use at_proto::{ClientMsg, ServerMsg, read_msg};
@@ -7,7 +7,6 @@ use crossbeam_channel::{Receiver, Sender};
 use std::io::{BufReader, BufWriter, Write};
 use std::os::unix::net::{UnixListener, UnixStream};
 use std::path::Path;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 static NEXT_ID: AtomicU64 = AtomicU64::new(1);
@@ -16,7 +15,7 @@ pub fn next_client_id() -> ClientId {
     NEXT_ID.fetch_add(1, Ordering::Relaxed)
 }
 
-/// Single-instance lock held for the daemon's lifetime.
+/// Single-instance lock held while the app runs.
 pub struct InstanceLock {
     _file: std::fs::File,
 }
@@ -36,7 +35,7 @@ impl InstanceLock {
         if r != 0 {
             return Err(std::io::Error::new(
                 std::io::ErrorKind::AddrInUse,
-                "another alexterminal-server is running",
+                "another AlexTerminal is running",
             ));
         }
         let _ = std::fs::write(path, std::process::id().to_string());
@@ -44,7 +43,7 @@ impl InstanceLock {
     }
 }
 
-/// Binds the daemon socket (`0600`). A stale socket file is replaced.
+/// Binds the instance socket (`0600`). A stale socket file is replaced.
 pub fn bind(path: &Path) -> std::io::Result<UnixListener> {
     use std::os::unix::fs::PermissionsExt;
     if let Some(p) = path.parent() {
@@ -144,33 +143,4 @@ pub fn connect_in_process(
         })
         .expect("spawn inproc forwarder");
     (ctx, srx)
-}
-
-/// Shared stop flag flipped by SIGTERM/SIGINT/SIGHUP.
-pub fn install_signal_handlers() -> Arc<std::sync::atomic::AtomicBool> {
-    static FLAG: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
-    extern "C" fn on_signal(_: libc::c_int) {
-        FLAG.store(true, Ordering::SeqCst);
-    }
-    unsafe {
-        for s in [libc::SIGTERM, libc::SIGINT, libc::SIGHUP] {
-            libc::signal(s, on_signal as *const () as libc::sighandler_t);
-        }
-        libc::signal(libc::SIGPIPE, libc::SIG_IGN);
-    }
-    let shared = Arc::new(std::sync::atomic::AtomicBool::new(false));
-    let s2 = shared.clone();
-    std::thread::Builder::new()
-        .name("signals".into())
-        .spawn(move || {
-            loop {
-                if FLAG.load(Ordering::SeqCst) {
-                    s2.store(true, Ordering::SeqCst);
-                    return;
-                }
-                std::thread::sleep(std::time::Duration::from_millis(50));
-            }
-        })
-        .expect("spawn signal watcher");
-    shared
 }

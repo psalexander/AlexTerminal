@@ -14,15 +14,15 @@ button-paste = Paste
 button-reconnect = Reconnect
 button-no = No
 button-restart = Restart
-button-keep-sessions = Close, keep sessions
+button-keep-sessions = Close, keep tabs
 button-end-sessions = End sessions
 
 confirm-busy-body = Running commands: { $running }. Remote connections: { $remote }.
 confirm-close-tab-title = Close “{ $title }”?
 confirm-close-pane-title = Close this pane?
 confirm-close-window-title = Close the window?
-confirm-close-window-ask = Sessions can keep running in the background and come back on the next launch.
-confirm-quit-title = Quit and end all sessions?
+confirm-close-window-ask = Its tabs can stay as detached tabs while AlexTerminal is running.
+confirm-quit-title = Quit AlexTerminal?
 confirm-paste-title = Paste multiple lines?
 confirm-paste-body = { $lines ->
     [one] The text has { $lines } line and may run as a command.
@@ -58,7 +58,6 @@ notice-remote-folder = Not available in a remote session
 notice-restored-backup = Session restored from backup: { $path }
 notice-session-unreadable = Saved session is unreadable, started clean: { $path }
 notice-settings-saved = Settings saved
-notice-reconnecting = Session server restarted, reconnecting…
 
 error-config = Config error: { $error }
 error-open = Cannot open: { $error }
@@ -123,7 +122,7 @@ settings-reconnect-ask = Ask
 settings-reconnect-auto = Reconnect automatically
 settings-reconnect-never = Do not reconnect
 settings-close-window = Closing a window
-settings-close-window-detach = Keep sessions running
+settings-close-window-detach = Keep its tabs as detached
 settings-close-window-close = End its sessions
 settings-close-window-ask = Ask
 settings-confirm-quit = Confirm ending busy sessions
@@ -131,8 +130,6 @@ settings-autosave = Autosave interval (seconds)
 settings-per-pane-history = Separate shell history per pane
 settings-history-max = History entries per pane
 settings-history-days = Keep history of closed panes (days)
-settings-autostart = Start session server at login
-settings-idle-shutdown = Stop idle server after (minutes, 0 = never)
 settings-integration = Shell integration
 settings-integration-auto = Automatic
 settings-integration-manual = Manual

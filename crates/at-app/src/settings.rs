@@ -49,7 +49,6 @@ pub enum Field {
     HistoryMax,
     HistoryDays,
     MaxFps,
-    IdleShutdown,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -110,7 +109,6 @@ fn field_key(f: Field) -> &'static str {
         Field::HistoryMax => "history_max_entries",
         Field::HistoryDays => "history_retention_days",
         Field::MaxFps => "max_fps",
-        Field::IdleShutdown => "idle_shutdown_min",
     }
 }
 
@@ -143,7 +141,6 @@ impl SettingsState {
             c.session.history_retention_days.to_string(),
         );
         numbers.insert("max_fps", c.advanced.max_fps.to_string());
-        numbers.insert("idle_shutdown_min", c.daemon.idle_shutdown_min.to_string());
         let (km, _) = Keymap::build(&c.keys);
         let keys = Action::all()
             .into_iter()
@@ -240,7 +237,6 @@ impl SettingsState {
                 "confirm_quit" => d.session.confirm_quit_when_busy = v,
                 "per_pane_history" => d.session.per_pane_shell_history = v,
                 "wrap_ssh" => d.shell_integration.wrap_ssh = v,
-                "autostart" => d.daemon.autostart = v,
                 _ => {}
             },
             Msg::Text(k, v) => match k {
@@ -333,7 +329,6 @@ impl SettingsState {
         c.session.history_max_entries = num("history_max_entries")? as usize;
         c.session.history_retention_days = num("history_retention_days")? as u64;
         c.advanced.max_fps = num("max_fps")? as u32;
-        c.daemon.idle_shutdown_min = num("idle_shutdown_min")? as u64;
         // Only actions that differ from the defaults are written.
         let defaults = at_core::keymap::default_bindings();
         let mut keys = BTreeMap::new();
@@ -789,8 +784,6 @@ impl SettingsState {
             ))
             .push(self.number(app, "settings-history-max", Field::HistoryMax))
             .push(self.number(app, "settings-history-days", Field::HistoryDays))
-            .push(self.toggle(app, "settings-autostart", "autostart", d.daemon.autostart))
-            .push(self.number(app, "settings-idle-shutdown", Field::IdleShutdown))
             .into()
     }
 

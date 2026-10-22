@@ -1,8 +1,8 @@
-//! macOS application menu: quit items that go through the app instead of `terminate:`.
+//! macOS application menu: a quit item that goes through the app instead of `terminate:`.
 //!
 //! winit builds the default application menu whose "Quit" item calls `terminate:`
-//! and kills the GUI without detaching from the server. Here it becomes "Quit
-//! (sessions keep running)" and a "Quit and end all sessions" item is added below.
+//! and kills the process without saving the session or asking about busy panes.
+//! Here it is replaced by an item that runs the app's own quit action.
 //! Picked items reach the app through [`stream`] as [`Message::MenuAction`].
 
 use crate::app::Message;
@@ -27,7 +27,7 @@ pub fn stream() -> impl Stream<Item = Message> {
     rx.map(Message::MenuAction)
 }
 
-/// Puts the quit items into the application menu. Returns false while the menu
+/// Puts the quit item into the application menu. Returns false while the menu
 /// does not exist yet (call again later); always true off macOS.
 #[cfg(not(target_os = "macos"))]
 pub fn install(_items: &[(Action, String)]) -> bool {
@@ -58,11 +58,6 @@ mod mac {
             fn quit(&self, _sender: Option<&AnyObject>) {
                 pick(Action::Quit);
             }
-
-            #[unsafe(method(quitAndEndSessions:))]
-            fn quit_and_end(&self, _sender: Option<&AnyObject>) {
-                pick(Action::QuitAndEndSessions);
-            }
         }
     );
 
@@ -82,7 +77,7 @@ mod mac {
         let target: Retained<MenuTarget> = unsafe { msg_send![MenuTarget::alloc(mtm), init] };
         let target: &'static MenuTarget = Box::leak(Box::new(target));
 
-        // Drop winit's `terminate:` item; ours take its place at the end.
+        // Drop winit's `terminate:` item; ours takes its place at the end.
         let n = app_menu.numberOfItems();
         for i in (0..n).rev() {
             if let Some(item) = app_menu.itemAtIndex(i)
@@ -95,10 +90,6 @@ mod mac {
         for (action, title) in items {
             let (sel, mods): (Sel, NSEventModifierFlags) = match action {
                 Action::Quit => (sel!(quit:), cmd),
-                Action::QuitAndEndSessions => (
-                    sel!(quitAndEndSessions:),
-                    cmd | NSEventModifierFlags::Option | NSEventModifierFlags::Shift,
-                ),
                 _ => continue,
             };
             let item = unsafe {

@@ -19,7 +19,7 @@ if command -v linuxdeploy >/dev/null; then
   APPDIR=target/AppDir
   rm -rf "$APPDIR"
   mkdir -p "$APPDIR/usr/bin" "$APPDIR/usr/share/alexterminal/fonts"
-  cp target/release/alexterminal target/release/alexterminal-server "$APPDIR/usr/bin/"
+  cp target/release/alexterminal "$APPDIR/usr/bin/"
   cp assets/fonts/*.ttf "$APPDIR/usr/share/alexterminal/fonts/" 2>/dev/null || true
   linuxdeploy --appdir "$APPDIR" -d packaging/linux/alexterminal.desktop -i target/icons/256.png --icon-filename alexterminal --output appimage
   mv AlexTerminal*.AppImage dist/

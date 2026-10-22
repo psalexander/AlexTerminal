@@ -9,7 +9,7 @@ cd "$(dirname "$0")/../.."
 VERSION=$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)
 DIST=dist
 APP="$DIST/AlexTerminal.app"
-BINS=(alexterminal alexterminal-server)
+BINS=(alexterminal)
 
 if [[ "${UNIVERSAL:-0}" == 1 ]]; then
   rustup target add aarch64-apple-darwin x86_64-apple-darwin

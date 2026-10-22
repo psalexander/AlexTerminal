@@ -27,7 +27,7 @@ use std::time::Duration;
 #[command(
     name = "alexterminal",
     version,
-    about = "AlexTerminal: a terminal with a tab tree and session daemon"
+    about = "AlexTerminal: a terminal with a tab tree and session restore"
 )]
 struct Cli {
     /// Start directory for the new tab or window.
@@ -45,13 +45,10 @@ struct Cli {
     /// Start with a clean session; the saved one is kept until the next save.
     #[arg(long)]
     no_restore: bool,
-    /// Run the session server inside this process (no detach).
-    #[arg(long)]
-    no_daemon: bool,
     /// Use another config file.
     #[arg(long, value_name = "FILE")]
     config: Option<PathBuf>,
-    /// Restore from a specific snapshot file (debugging; implies --no-daemon).
+    /// Restore from a specific snapshot file (debugging).
     #[arg(long, value_name = "FILE")]
     restore_from: Option<PathBuf>,
     #[arg(long)]
@@ -64,9 +61,7 @@ struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Sub {
-    /// Open windows for the live sessions of the daemon.
-    Attach,
-    /// Print windows, tabs and panes of the running daemon.
+    /// Print windows, tabs and panes of the running app.
     List {
         #[arg(long)]
         json: bool,
@@ -204,7 +199,7 @@ fn bundled_fonts() -> Vec<Vec<u8>> {
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
     if let Some(cfg) = &cli.config {
-        // Inherited by a daemon started from here.
+        // Read by the in-process session server.
         unsafe { std::env::set_var("ALEXTERMINAL_CONFIG", cfg) };
     }
     if cli.print_config_path {
@@ -231,75 +226,43 @@ fn main() -> anyhow::Result<()> {
         || initial.command.is_some()
         || initial.profile.is_some()
         || cli.new_window;
-    let in_process = cli.no_daemon || cli.restore_from.is_some();
-    let conn = if in_process {
-        at_client::in_process(!cli.no_restore, cli.restore_from.clone())
-    } else {
-        // Replaces an outdated server automatically; its session is saved and restored.
-        let (c, first) = at_client::connect_checked(ClientKind::Gui)?;
-        // If another GUI is attached, hand the request to it and exit (§4.12).
-        if let ServerMsg::Welcome {
-            gui_clients,
-            workspace,
-            ..
-        } = &first
-            && *gui_clients > 0
-            && cli.sub.is_none()
-        {
-            let cmd = if cli.new_window || workspace.windows.is_empty() {
-                Cmd::NewWindow {
-                    cwd: initial.cwd.clone(),
+    // A running app takes the request (a new tab or window) and this launch exits (§4.12).
+    if let Some((c, ServerMsg::Welcome { workspace, .. })) = at_client::find_running()? {
+        let cmd = if cli.new_window || workspace.windows.is_empty() {
+            Cmd::NewWindow {
+                cwd: initial.cwd.clone(),
+                profile: initial.profile.clone(),
+                command: initial.command.clone(),
+                geom: None,
+            }
+        } else {
+            let window = workspace
+                .focused_window
+                .filter(|w| workspace.window(*w).is_some())
+                .unwrap_or(workspace.windows[0].id);
+            if wants_tab {
+                Cmd::NewTab {
+                    window,
+                    nested: false,
                     profile: initial.profile.clone(),
+                    cwd: initial.cwd.clone(),
                     command: initial.command.clone(),
-                    geom: None,
                 }
             } else {
-                let window = workspace
-                    .focused_window
-                    .filter(|w| workspace.window(*w).is_some())
-                    .unwrap_or(workspace.windows[0].id);
-                if wants_tab {
-                    Cmd::NewTab {
-                        window,
-                        nested: false,
-                        profile: initial.profile.clone(),
-                        cwd: initial.cwd.clone(),
-                        command: initial.command.clone(),
-                    }
-                } else {
-                    Cmd::NewWindow {
-                        cwd: None,
-                        profile: None,
-                        command: None,
-                        geom: None,
-                    }
-                }
-            };
-            let _ = c.tx.send(ClientMsg::Cmd(cmd));
-            let _ = c.tx.send(ClientMsg::Detach);
-            std::thread::sleep(Duration::from_millis(150));
-            return Ok(());
-        }
-        // Re-inject the welcome so the app sees it.
-        let (tx2, rx2) = crossbeam_channel::unbounded();
-        let _ = tx2.send(first);
-        let rx = c.rx.clone();
-        std::thread::spawn(move || {
-            while let Ok(m) = rx.recv() {
-                if tx2.send(m).is_err() {
-                    break;
+                Cmd::NewWindow {
+                    cwd: None,
+                    profile: None,
+                    command: None,
+                    geom: None,
                 }
             }
-        });
-        at_client::Connection {
-            tx: c.tx,
-            rx: rx2,
-            in_process: false,
-        }
-    };
-    if !in_process && cli.no_restore {
-        tracing::info!("--no-restore only applies when the daemon starts fresh");
+        };
+        let _ = c.tx.send(ClientMsg::Cmd(cmd));
+        let _ = c.tx.send(ClientMsg::Detach);
+        std::thread::sleep(Duration::from_millis(150));
+        return Ok(());
     }
+    let conn = at_client::start(!cli.no_restore, cli.restore_from.clone())?;
     // Register bundled fonts before the app resolves its font family.
     let fonts = bundled_fonts();
     if let Ok(mut fs) = iced::advanced::graphics::text::font_system().write() {
@@ -309,12 +272,11 @@ fn main() -> anyhow::Result<()> {
     }
     conn::install(conn.rx);
     let tx = conn.tx;
-    let in_proc = conn.in_process;
     let icon = window_icon();
     let mut daemon = iced::daemon(
         move || {
             (
-                App::new(tx.clone(), in_proc, initial.clone(), icon.clone()),
+                App::new(tx.clone(), initial.clone(), icon.clone()),
                 iced::Task::none(),
             )
         },

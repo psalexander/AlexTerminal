@@ -1,6 +1,6 @@
 [package]
 name = "at-client"
-description = "AlexTerminal client side of the daemon protocol: connect, autostart, in-process mode"
+description = "AlexTerminal: starts the in-process session server and finds a running app"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

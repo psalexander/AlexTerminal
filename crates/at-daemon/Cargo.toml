@@ -1,13 +1,9 @@
 [package]
 name = "at-daemon"
-description = "AlexTerminal session daemon (alexterminal-server)"
+description = "AlexTerminal session server, run inside the app process"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-
-[[bin]]
-name = "alexterminal-server"
-path = "src/bin/alexterminal-server.rs"
 
 [dependencies]
 at-core.workspace = true
