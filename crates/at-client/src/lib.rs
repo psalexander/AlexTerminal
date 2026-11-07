@@ -12,6 +12,20 @@ use std::os::unix::net::UnixStream;
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
+pub struct ServerGuard {
+    tx: Sender<ClientMsg>,
+    thread: Option<std::thread::JoinHandle<()>>,
+}
+
+impl Drop for ServerGuard {
+    fn drop(&mut self) {
+        let _ = self.tx.send(ClientMsg::Shutdown);
+        if let Some(thread) = self.thread.take() {
+            let _ = thread.join();
+        }
+    }
+}
+
 pub struct Connection {
     pub tx: Sender<ClientMsg>,
     pub rx: Receiver<ServerMsg>,
@@ -134,7 +148,7 @@ pub fn find_running() -> anyhow::Result<Option<(Connection, ServerMsg)>> {
 
 /// Starts the session server on a thread of this process and connects the app to it.
 /// Sessions end with the process.
-pub fn start(restore: bool, restore_from: Option<PathBuf>) -> anyhow::Result<Connection> {
+pub fn start(restore: bool, restore_from: Option<PathBuf>) -> anyhow::Result<(Connection, ServerGuard)> {
     // A server stopped by `find_running` may still be releasing its lock.
     let deadline = Instant::now() + Duration::from_secs(3);
     let lock = loop {
@@ -153,7 +167,7 @@ pub fn start(restore: bool, restore_from: Option<PathBuf>) -> anyhow::Result<Con
         restore_from,
         exit_when_empty: false,
     };
-    std::thread::Builder::new()
+    let thread = std::thread::Builder::new()
         .name("server".into())
         .spawn(move || {
             Server::new(rx, opts).run();
@@ -166,5 +180,6 @@ pub fn start(restore: bool, restore_from: Option<PathBuf>) -> anyhow::Result<Con
         kind: ClientKind::Gui,
         pid: std::process::id(),
     });
-    Ok(Connection { tx: ctx, rx: srx })
+    let guard = ServerGuard { tx: ctx.clone(), thread: Some(thread) };
+    Ok((Connection { tx: ctx, rx: srx }, guard))
 }

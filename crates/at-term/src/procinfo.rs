@@ -230,3 +230,31 @@ mod tests {
         assert!(!is_remote("vim", None, &progs));
     }
 }
+
+/// Snapshot the process tree before signalling its root (parents precede children).
+pub fn descendants(root: i32) -> Vec<i32> {
+    let Ok(output) = std::process::Command::new("/bin/ps")
+        .args(["-axo", "pid=,ppid="]).output() else { return Vec::new(); };
+    let rows: Vec<(i32, i32)> = String::from_utf8_lossy(&output.stdout)
+        .lines().filter_map(|line| {
+            let mut fields = line.split_whitespace();
+            Some((fields.next()?.parse().ok()?, fields.next()?.parse().ok()?))
+        }).collect();
+    let mut tree = vec![root];
+    let mut index = 0;
+    while index < tree.len() {
+        let parent = tree[index];
+        for &(pid, ppid) in &rows {
+            if ppid == parent && !tree.contains(&pid) { tree.push(pid); }
+        }
+        index += 1;
+    }
+    // Job-control groups can outlive their shell while retaining its session ID.
+    for &(pid, _) in &rows {
+        if pid != root && unsafe { libc::getsid(pid) } == root && !tree.contains(&pid) {
+            tree.push(pid);
+        }
+    }
+    tree.remove(0);
+    tree
+}

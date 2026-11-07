@@ -187,11 +187,10 @@ impl Pane {
             pixel_height: rows * opts.cell_h,
         })?;
         let cmd = shell::command(&opts.launch);
-        let child = pair.slave.spawn_command(cmd)?;
+        let mut child = pair.slave.spawn_command(cmd)?;
         drop(pair.slave);
         let shell_pid = child.process_id().map(|p| p as i32).unwrap_or(-1);
-        // The child is reaped with waitpid by the reader thread.
-        std::mem::forget(child);
+
         let mut reader = pair.master.try_clone_reader()?;
         let writer: Arc<Mutex<Box<dyn Write + Send>>> =
             Arc::new(Mutex::new(pair.master.take_writer()?));
@@ -251,6 +250,17 @@ impl Pane {
             shell: opts.launch.shell.clone(),
         });
 
+        // Reap independently of PTY EOF: a descendant may still hold the slave open.
+        let reaped = exited.clone();
+        let status = exit_code.clone();
+        std::thread::Builder::new()
+            .name(format!("wait-{}", opts.id))
+            .spawn(move || {
+                let code = child.wait().map(|s| s.exit_code() as i32).unwrap_or(-1);
+                status.store(code, Ordering::Release);
+                reaped.store(true, Ordering::Release);
+            })?;
+
         let id = opts.id;
         std::thread::Builder::new()
             .name(format!("pty-{id}"))
@@ -291,9 +301,10 @@ impl Pane {
                         Err(_) => break,
                     }
                 }
-                let code = wait_child(shell_pid);
-                exit_code.store(code, Ordering::Release);
-                exited.store(true, Ordering::Release);
+                while !exited.load(Ordering::Acquire) {
+                    std::thread::sleep(Duration::from_millis(5));
+                }
+                let code = exit_code.load(Ordering::Acquire);
                 dirty.store(true, Ordering::Release);
                 let _ = tx.send(PaneEvent::Dirty(id));
                 let _ = tx.send(PaneEvent::Exited(id, code));
@@ -950,32 +961,46 @@ impl Pane {
 
     /// Graceful shutdown: SIGHUP to the session (ssh closes cleanly), then SIGTERM, then SIGKILL.
     pub fn terminate(&self, hup_wait: Duration, term_wait: Duration) {
-        if self.is_exited() || self.shell_pid <= 0 {
+        if self.shell_pid <= 0 {
             return;
         }
+        // Capture descendants before the shell can exit and reparent its jobs.
+        let descendants = crate::procinfo::descendants(self.shell_pid);
         let fg = self.foreground_pgid();
-        unsafe {
-            if let Some(pg) = fg.filter(|p| *p > 0 && *p != self.shell_pid) {
-                libc::killpg(pg, libc::SIGHUP);
+        for (signal, timeout) in [
+            (libc::SIGHUP, hup_wait),
+            (libc::SIGTERM, term_wait),
+            (libc::SIGKILL, Duration::from_millis(500)),
+        ] {
+            // Children first, giving their parents a chance to reap them.
+            for &pid in descendants.iter().rev() {
+                unsafe { libc::kill(pid, signal); }
             }
-            libc::killpg(self.shell_pid, libc::SIGHUP);
-            libc::kill(self.shell_pid, libc::SIGHUP);
+            if let Some(pg) = fg.filter(|p| *p > 0 && *p != self.shell_pid) {
+                unsafe { libc::killpg(pg, signal); }
+            }
+            if !descendants.is_empty() {
+                std::thread::sleep(Duration::from_millis(50));
+            }
+            if !self.is_exited() {
+                unsafe {
+                    libc::killpg(self.shell_pid, signal);
+                    libc::kill(self.shell_pid, signal);
+                }
+            }
+            let deadline = Instant::now() + timeout;
+            loop {
+                if self.is_exited() && descendants.iter().all(|&pid| unsafe {
+                    libc::kill(pid, 0) == -1
+                        && std::io::Error::last_os_error().raw_os_error() == Some(libc::ESRCH)
+                }) {
+                    return;
+                }
+                if Instant::now() >= deadline { break; }
+                std::thread::sleep(Duration::from_millis(15));
+            }
         }
-        if self.wait_exit(hup_wait) {
-            return;
-        }
-        unsafe {
-            libc::killpg(self.shell_pid, libc::SIGTERM);
-            libc::kill(self.shell_pid, libc::SIGTERM);
-        }
-        if self.wait_exit(term_wait) {
-            return;
-        }
-        unsafe {
-            libc::killpg(self.shell_pid, libc::SIGKILL);
-            libc::kill(self.shell_pid, libc::SIGKILL);
-        }
-        self.wait_exit(Duration::from_millis(500));
+        self.wait_exit(Duration::from_secs(1));
     }
 
     pub fn wait_exit(&self, timeout: Duration) -> bool {
@@ -992,36 +1017,12 @@ impl Pane {
 
 impl Drop for Pane {
     fn drop(&mut self) {
-        if !self.is_exited() && self.shell_pid > 0 {
-            unsafe {
-                libc::killpg(self.shell_pid, libc::SIGHUP);
-            }
+        if !self.is_exited() {
+            self.terminate(Duration::from_millis(300), Duration::from_millis(300));
         }
     }
 }
 
-fn wait_child(pid: i32) -> i32 {
-    if pid <= 0 {
-        return -1;
-    }
-    let mut status: libc::c_int = 0;
-    for _ in 0..200 {
-        let r = unsafe { libc::waitpid(pid, &mut status, 0) };
-        if r == pid {
-            if libc::WIFEXITED(status) {
-                return libc::WEXITSTATUS(status);
-            }
-            if libc::WIFSIGNALED(status) {
-                return 128 + libc::WTERMSIG(status);
-            }
-            return -1;
-        }
-        if r < 0 && std::io::Error::last_os_error().raw_os_error() != Some(libc::EINTR) {
-            return -1;
-        }
-    }
-    -1
-}
 
 fn regex_escape(s: &str) -> String {
     regex::escape(s)
@@ -1318,6 +1319,50 @@ mod tests {
         assert!(p.selection_text().unwrap().contains("beta"));
         p.terminate(Duration::from_secs(2), Duration::from_secs(1));
         assert!(p.is_exited());
+    }
+
+    #[test]
+    fn reap_shell_while_background_job_holds_pty() {
+        let dir = tempfile::tempdir().unwrap();
+        let (tx, _rx) = crossbeam_channel::unbounded();
+        let p = Pane::spawn(
+            opts(PaneId::new(), "/bin/sh", vec!["-c".into(),
+                "trap '' HUP; sleep 100 & exit 0".into()], dir.path(), None), tx,
+        ).unwrap();
+        let reaped = p.wait_exit(Duration::from_secs(3));
+        // Also clean up the job when the assertion fails.
+        p.terminate(Duration::from_millis(150), Duration::from_millis(150));
+        assert!(reaped, "shell reaping must not depend on PTY EOF");
+    }
+
+    #[test]
+    fn terminate_kills_background_job_in_separate_group() {
+        let dir = tempfile::tempdir().unwrap();
+        let (tx, _rx) = crossbeam_channel::unbounded();
+        let p = Pane::spawn(opts(
+            PaneId::new(), "/bin/sh",
+            vec!["-c".into(),
+                "set -m; (trap '' HUP TERM; echo $$; exec sleep 100) & echo $! > job.pid; wait".into()],
+            dir.path(), None,
+        ), tx).unwrap();
+        let deadline = Instant::now() + Duration::from_secs(3);
+        let pid_file = dir.path().join("job.pid");
+        while !pid_file.exists() && Instant::now() < deadline {
+            std::thread::sleep(Duration::from_millis(10));
+        }
+        let pid: i32 = std::fs::read_to_string(pid_file).unwrap().trim().parse().unwrap();
+        std::thread::sleep(Duration::from_millis(100));
+        assert_ne!(unsafe { libc::getpgid(pid) }, p.shell_pid());
+        p.terminate(Duration::from_millis(150), Duration::from_millis(150));
+        assert!(p.is_exited());
+        let deadline = Instant::now() + Duration::from_secs(3);
+        while unsafe { libc::kill(pid, 0) } == 0 && Instant::now() < deadline {
+            std::thread::sleep(Duration::from_millis(10));
+        }
+        assert_eq!(unsafe { libc::kill(pid, 0) }, -1, "job survived shutdown");
+        let mut status = 0;
+        assert_eq!(unsafe { libc::waitpid(p.shell_pid(), &mut status, libc::WNOHANG) }, -1);
+        assert_eq!(std::io::Error::last_os_error().raw_os_error(), Some(libc::ECHILD));
     }
 
     #[test]

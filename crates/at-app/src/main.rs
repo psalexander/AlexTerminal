@@ -262,7 +262,7 @@ fn main() -> anyhow::Result<()> {
         std::thread::sleep(Duration::from_millis(150));
         return Ok(());
     }
-    let conn = at_client::start(!cli.no_restore, cli.restore_from.clone())?;
+    let (conn, _server_guard) = at_client::start(!cli.no_restore, cli.restore_from.clone())?;
     // Register bundled fonts before the app resolves its font family.
     let fonts = bundled_fonts();
     if let Ok(mut fs) = iced::advanced::graphics::text::font_system().write() {

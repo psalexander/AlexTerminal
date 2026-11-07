@@ -1820,10 +1820,8 @@ impl App {
             ConfirmAction::QuitAll => {
                 self.exiting = true;
                 self.send(ClientMsg::Shutdown);
-                // The server answers with ShuttingDown; exit anyway after a grace period.
-                return Task::perform(async { tokio_sleep(Duration::from_secs(6)).await }, |_| {
-                    Message::Disconnected("shutdown".into())
-                });
+                // Wait for disconnection after the server has reaped the shells.
+                return Task::none();
             }
             ConfirmAction::Paste(p, text) => self.send(ClientMsg::Paste { pane: p, text }),
         }
