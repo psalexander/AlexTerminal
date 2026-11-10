@@ -5,312 +5,272 @@
 <h1 align="center">AlexTerminal</h1>
 
 <p align="center">
-  Терминал для macOS и Linux на Rust: вкладки списком слева, группы вкладок,<br>
-  до четырёх панелей во вкладке и восстановление сессии после перезапуска.
+  A Rust terminal for macOS and Linux with a vertical tab sidebar, tab groups,<br>
+  up to four panes per tab, and workspace restoration after restart.
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/grid.png" alt="Группа вкладок и сетка 2×2" width="900">
+  <img src="docs/screenshots/grid.png" alt="Tab group and 2×2 pane grid" width="900">
 </p>
 
-## Возможности
+## Features
 
-- **Вкладки слева.** Вкладки идут вертикальным списком. Верхний уровень — группы, внутри групп — вкладки-терминалы. Группа из одной вкладки показывается одной строкой.
-- **Группа целиком в одном окне.** Вкладки группы можно смотреть по одной или все сразу, секциями друг под другом (`⌘⇧G`). Высоту секций меняют перетаскиванием границы. Вместо стопки секции можно разложить плиткой (`⌘⌥G`). Вид выбирается и в контекстном меню группы: «По одной», «Одна под другой», «Плиткой».
-- **До четырёх панелей во вкладке.** Панели стоят вертикальным стеком. Четыре панели переключаются в сетку 2×2 (`⌘⇧M`), размеры меняются мышью и с клавиатуры.
-- **Восстановление после перезагрузки.** Окна, группы, вкладки, папки и последние строки вывода сохраняются в слепок. Удалённые сессии после перезапуска предлагается переподключить.
-- **История команд у каждой панели.** Каждая панель пишет свою историю в файл с папкой и кодом выхода. Стрелка вверх в shell тоже показывает только команды этой панели.
-- **Индикаторы на вкладках.** Видно, где выполняется команда, где открыт ssh и где команда завершилась в фоне.
-- **Shell-интеграция для zsh, bash и fish.** Она подключается автоматически и сообщает терминалу текущую папку, начало и конец команды и хост ssh.
-- **Открыть папку.** `⌘⇧O` открывает текущую папку панели в Finder или файловом менеджере, `⌘⇧I` — в редакторе.
-- **Палитра команд** (`⌘⇧P`) с поиском по всем действиям. Поиск по прокрутке, распознавание ссылок по `⌘`-клику, профили вкладок.
-- **Спокойные цвета.** Тёмная тема Dusk и светлая Linen подобраны под умеренный контраст. Шрифт JetBrains Mono, можно импортировать темы Alacritty.
-- **Интерфейс на русском и английском**, язык берётся из системы.
+- **Vertical tab sidebar.** Tabs are organized into groups. A group with one tab takes up a single row.
+- **Group views.** Show one tab at a time, stack all tabs in a group in one window (`⌘⇧G`), or tile them (`⌘⌥G`). Drag the dividers to resize stacked tabs. These views are also available in the group's context menu.
+- **Up to four panes per tab.** Panes stack vertically. With four panes, use `⌘⇧M` to switch to a 2×2 grid. Resize panes with the mouse or keyboard.
+- **Workspace restoration.** AlexTerminal saves windows, groups, tabs, working directories, and recent output. On restart, it offers to reconnect remote sessions.
+- **Per-pane command history.** Each pane records its commands, working directories, and exit codes. The shell's Up arrow recalls commands from the current pane.
+- **Tab status indicators.** See which tabs are running commands, connected over SSH, or have commands that finished in the background.
+- **Shell integration for zsh, bash, and fish.** AlexTerminal enables integration automatically to track working directories, command start and completion, and SSH hosts.
+- **Open the current directory.** Use `⌘⇧O` to open a pane's directory in Finder or your file manager, or `⌘⇧I` to open it in your editor.
+- **Command palette.** Use `⌘⇧P` to search available actions. AlexTerminal also supports scrollback search, Command-clickable links, and tab profiles.
+- **Themes and fonts.** Dusk and Linen provide dark and light themes with moderate contrast. AlexTerminal supports JetBrains Mono and can import Alacritty themes.
+- **English and Russian interface.** The app follows your system language.
 
 <p align="center">
-  <img src="docs/screenshots/group.png" alt="Все вкладки группы в одном окне" width="440">
-  <img src="docs/screenshots/palette.png" alt="Палитра команд" width="440">
+  <img src="docs/screenshots/group.png" alt="All tabs in a group shown in one window" width="440">
+  <img src="docs/screenshots/palette.png" alt="Command palette" width="440">
 </p>
 
-## Сборка из исходников
+## Build from source
 
-Сборка и запуск проверены на macOS 26 (Apple Silicon) с Rust 1.99. Для Linux список системных пакетов взят из требований iced и winit, на живой системе сборка ещё не проверялась.
+The build and app launch were verified on macOS 26 (Apple Silicon) with Rust 1.99. The Linux package lists follow iced and winit requirements. Building on a Linux system remains unverified.
 
-### 1. Подготовка macOS
+### 1. Install prerequisites
 
-1. Установите инструменты командной строки Xcode, если их ещё нет:
+#### macOS
 
-   ```bash
-   xcode-select --install
-   ```
-
-2. Установите Rust через rustup. Подойдёт официальный установщик с [rustup.rs](https://rustup.rs) или Homebrew:
-
-   ```bash
-   brew install rustup
-   ```
-
-   ```bash
-   rustup default stable
-   ```
-
-   Homebrew ставит `rustup` без ссылок в `PATH`. Добавьте его в `~/.zshrc`:
-
-   ```bash
-   echo 'export PATH="/opt/homebrew/opt/rustup/bin:$HOME/.cargo/bin:$PATH"' >> ~/.zshrc
-   ```
-
-3. Проверьте версию. Нужен Rust 1.85 или новее:
-
-   ```bash
-   cargo --version
-   ```
-
-### 1. Подготовка Linux
-
-1. Установите компилятор и библиотеки окна, клавиатуры и графики.
-
-   Debian и Ubuntu:
-
-   ```bash
-   sudo apt install build-essential pkg-config curl git libxkbcommon-dev libwayland-dev libx11-dev libxcursor-dev libxrandr-dev libxi-dev libvulkan-dev
-   ```
-
-   Fedora:
-
-   ```bash
-   sudo dnf install gcc pkgconf-pkg-config curl git libxkbcommon-devel wayland-devel libX11-devel libXcursor-devel libXrandr-devel libXi-devel vulkan-loader-devel
-   ```
-
-   Arch:
-
-   ```bash
-   sudo pacman -S base-devel curl git libxkbcommon wayland libx11 libxcursor libxrandr libxi vulkan-icd-loader
-   ```
-
-2. Установите Rust:
-
-   ```bash
-   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-   ```
-
-### 2. Получение кода и шрифта
+Install the Xcode Command Line Tools if needed.
 
 ```bash
-git clone <адрес-репозитория> AlexTerminal
+xcode-select --install
 ```
 
+Install Rust using the official [rustup installer](https://rustup.rs) or Homebrew. If you use Homebrew, add rustup to your zsh path and reload it before selecting the stable toolchain.
+
 ```bash
+brew install rustup
+echo 'export PATH="$(brew --prefix rustup)/bin:$HOME/.cargo/bin:$PATH"' >> ~/.zshrc
+source ~/.zshrc
+rustup default stable
+```
+
+#### Linux
+
+Install the compiler and system libraries for windowing, keyboard input, and graphics.
+
+**Debian and Ubuntu**
+
+```bash
+sudo apt install build-essential pkg-config curl git libxkbcommon-dev libwayland-dev libx11-dev libxcursor-dev libxrandr-dev libxi-dev libvulkan-dev
+```
+
+**Fedora**
+
+```bash
+sudo dnf install gcc pkgconf-pkg-config curl git libxkbcommon-devel wayland-devel libX11-devel libXcursor-devel libXrandr-devel libXi-devel vulkan-loader-devel
+```
+
+**Arch Linux**
+
+```bash
+sudo pacman -S base-devel curl git libxkbcommon wayland libx11 libxcursor libxrandr libxi vulkan-icd-loader
+```
+
+Install Rust with rustup.
+
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+```
+
+### 2. Clone the repository
+
+```bash
+git clone https://github.com/psalexander/AlexTerminal.git
 cd AlexTerminal
 ```
 
-Шрифт JetBrains Mono (лицензия OFL) в репозитории не хранится. Скрипт скачивает его в `assets/fonts`:
+To use JetBrains Mono, run the optional script below to download it into `assets/fonts`. AlexTerminal can fall back to SF Mono, Menlo, or DejaVu Sans Mono.
 
 ```bash
 scripts/fetch-fonts.sh
 ```
 
-Шаг необязательный. Без шрифта приложение возьмёт SF Mono, Menlo или DejaVu Sans Mono.
+### 3. Build and run
 
-### 3. Сборка и запуск
-
-Отладочный запуск прямо из исходников:
+Run a debug build directly from the source tree.
 
 ```bash
 cargo run --bin alexterminal
 ```
 
-Release-сборка. Первая сборка скачивает зависимости и занимает несколько минут:
+Build and run the release binary. The first build downloads dependencies and may take several minutes.
 
 ```bash
 cargo build --release
-```
-
-```bash
 ./target/release/alexterminal
 ```
 
-Получается один бинарник `alexterminal`. Сервер сессий работает внутри него.
+The `alexterminal` binary includes the session server.
 
-### 4. Установка
+### 4. Install
 
-**macOS.** Скрипт собирает `dist/AlexTerminal.app` и образ `dist/AlexTerminal-<версия>.dmg`:
+#### macOS
+
+The packaging script produces `dist/AlexTerminal.app` and `dist/AlexTerminal-<version>.dmg`.
 
 ```bash
 packaging/macos/build-app.sh
 ```
 
-Затем перетащите `AlexTerminal.app` в «Программы» или скопируйте командой:
+Drag `AlexTerminal.app` into Applications or copy it from the command line.
 
 ```bash
 cp -R dist/AlexTerminal.app /Applications/
 ```
 
-Без подписи Developer ID macOS при первом запуске предупредит о неизвестном разработчике. Откройте приложение через контекстное меню «Открыть» или подпишите сборку по шагу 6.
+macOS may flag a build without a Developer ID signature on first launch. You can sign the build using the instructions in step 6.
 
-**Linux.** Скрипт собирает `.deb` через cargo-deb и AppImage, если установлен `linuxdeploy`:
+#### Linux
+
+The packaging script builds a `.deb` with cargo-deb and an AppImage when `linuxdeploy` is available.
 
 ```bash
 packaging/linux/build.sh
 ```
 
-Ручная установка в домашний каталог без пакетов:
+To install directly into your home directory, run these commands after building the release binary.
 
 ```bash
 install -Dm755 target/release/alexterminal -t ~/.local/bin/
-```
-
-```bash
 install -Dm644 packaging/linux/alexterminal.desktop -t ~/.local/share/applications/
-```
-
-```bash
 install -Dm644 assets/icon-256.png ~/.local/share/icons/hicolor/256x256/apps/alexterminal.png
 ```
 
-### 5. Тесты и проверки
+### 5. Run tests and checks
 
 ```bash
 cargo test --workspace
-```
-
-```bash
 cargo clippy --workspace --all-targets -- -D warnings
-```
-
-```bash
 cargo fmt --all --check
 ```
 
-Тесты запускают настоящие shell-процессы в PTY и сервер сессий в изолированном каталоге. Ваши настройки и сессии они не трогают. Эти же проверки выполняет GitHub Actions на macOS и Ubuntu, см. `.github/workflows/ci.yml`.
+The tests run real shells in PTYs and start a session server in an isolated directory. GitHub Actions runs the same checks on macOS and Ubuntu. See the [CI workflow](.github/workflows/ci.yml).
 
-### 6. Подпись, нотаризация и универсальный бинарник (macOS)
+### 6. Sign, notarize, and build a universal binary on macOS
 
-Скрипт упаковки управляется переменными окружения:
+| Environment variable | Purpose |
+| --- | --- |
+| `UNIVERSAL=1` | Builds arm64 and x86_64 binaries and combines them with `lipo` |
+| `SIGN_IDENTITY` | Signs the binaries, app bundle, and disk image with hardened runtime |
+| `NOTARY_PROFILE` | Submits the disk image for notarization and staples the ticket |
 
-| Переменная | Что делает |
-|---|---|
-| `UNIVERSAL=1` | Собирает arm64 и x86_64 и объединяет их через `lipo` |
-| `SIGN_IDENTITY` | Подписывает бинарники, `.app` и `.dmg` с hardened runtime |
-| `NOTARY_PROFILE` | Отправляет `.dmg` на нотаризацию и прикрепляет тикет |
-
-Профиль нотаризации создаётся один раз:
+Create a notarization profile once.
 
 ```bash
 xcrun notarytool store-credentials alexterminal-notary --apple-id you@example.com --team-id TEAMID
 ```
 
-Полная сборка релиза:
+Build a signed, notarized release.
 
 ```bash
-UNIVERSAL=1 SIGN_IDENTITY="Developer ID Application: Имя (TEAMID)" NOTARY_PROFILE=alexterminal-notary packaging/macos/build-app.sh
+UNIVERSAL=1 SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" NOTARY_PROFILE=alexterminal-notary packaging/macos/build-app.sh
 ```
 
-Для релиза по тегу `v*` CI делает то же самое. Ему нужны секреты `MACOS_CERT_P12`, `MACOS_CERT_PASSWORD`, `MACOS_SIGN_IDENTITY`, `NOTARY_API_KEY_P8`, `NOTARY_API_KEY_ID` и `NOTARY_API_ISSUER`.
+The release workflow for `v*` tags uses `MACOS_CERT_P12`, `MACOS_CERT_PASSWORD`, `MACOS_SIGN_IDENTITY`, `NOTARY_API_KEY_P8`, `NOTARY_API_KEY_ID`, and `NOTARY_API_ISSUER`.
 
-## Основные сочетания клавиш
+## Keyboard shortcuts
 
-На Linux вместо `⌘` используется `Ctrl+Shift`. Полный список с поиском открывается палитрой команд, все сочетания переназначаются в настройках.
+The table shows macOS defaults. Linux typically uses `Ctrl+Shift` for letter shortcuts and `Ctrl` for other keys. Search the command palette for the shortcuts on your platform. You can remap them in Settings.
 
-| Действие | macOS |
-|---|---|
-| Новая вкладка (новая группа) | `⌘T` |
-| Новая вкладка в текущей группе | `⌘⇧T` |
-| Вкладки группы вместе или по одной | `⌘⇧G` |
-| Вкладки группы плиткой или стопкой | `⌘⌥G` |
-| Новая панель | `⌘D` |
-| Стек ↔ сетка 2×2 | `⌘⇧M` |
-| Переход между панелями | `⌘⌥←↑↓→` |
-| Закрыть панель / вкладку | `⌘W` / `⌘⇧W` |
-| Вернуть закрытую вкладку | `⌘⇧Z` |
-| Вкладка 1…9 | `⌘1…9` |
-| Открыть папку в Finder | `⌘⇧O` |
-| История команд панели | `⌘⇧H` |
-| Поиск | `⌘F` |
-| Палитра команд | `⌘⇧P` |
-| Настройки | `⌘,` |
-| Выйти | `⌘Q` |
+| Action | macOS |
+| --- | --- |
+| New tab in a new group | `⌘T` |
+| New tab in the current group | `⌘⇧T` |
+| Toggle between one tab and all tabs in the group | `⌘⇧G` |
+| Toggle between tiled and stacked group views | `⌘⌥G` |
+| New pane | `⌘D` |
+| Toggle between stacked panes and a 2×2 grid | `⌘⇧M` |
+| Move between panes | `⌘⌥←↑↓→` |
+| Close pane / close tab | `⌘W` / `⌘⇧W` |
+| Reopen closed tab | `⌘⇧Z` |
+| Select tab 1–9 | `⌘1…9` |
+| Open directory in Finder | `⌘⇧O` |
+| Show pane command history | `⌘⇧H` |
+| Search scrollback | `⌘F` |
+| Open command palette | `⌘⇧P` |
+| Open Settings | `⌘,` |
+| Quit | `⌘Q` |
 
-## Настройки и файлы
+## Settings and files
 
-| Что | macOS | Linux |
-|---|---|---|
-| Настройки | `~/.config/alexterminal/config.toml` | `~/.config/alexterminal/config.toml` |
-| Слепок, история, прокрутка | `~/Library/Application Support/AlexTerminal/` | `~/.local/share/alexterminal/` |
-| Логи | `~/Library/Logs/AlexTerminal/` | `~/.local/state/alexterminal/` |
+| Data | macOS | Linux |
+| --- | --- | --- |
+| Settings | `~/.config/alexterminal/config.toml` | `~/.config/alexterminal/config.toml` |
+| Session snapshot, command history, and scrollback | `~/Library/Application Support/AlexTerminal/` | `~/.local/share/alexterminal/` |
+| Logs | `~/Library/Logs/AlexTerminal/` | `~/.local/state/alexterminal/` |
 
-Окно настроек (`⌘,`) пишет тот же `config.toml`, изменения в файле подхватываются на лету. Все параметры с описанием перечислены в [SPEC.md](SPEC.md), раздел 5.
+The Settings window (`⌘,`) writes to `config.toml`. AlexTerminal reloads file edits while running. See section 5 of the [technical specification](SPEC.md) for the full list of settings.
 
-## Сервер сессий
+## Session server
 
-Терминальные процессы живут в сервере сессий — потоке внутри процесса `alexterminal`. Окна только рисуют интерфейс и передают ввод.
+The session server runs in a thread inside the `alexterminal` process. Windows render the interface and forward input to the server. The server starts each pane's shell in its own PTY, processes output with `alacritty_terminal`, and keeps scrollback. It also tracks windows, groups, tabs, layouts, and sizes and saves them to `session.json`.
 
-**Что делает сервер:**
+The server listens on a Unix socket accessible to its owner. Another invocation of `alexterminal` can open a tab in the running app, and `alexterminal list` reports its state.
 
-- Запускает shell всех панелей, каждую в своём псевдотерминале. Разбирает их вывод через `alacritty_terminal` и хранит историю прокрутки.
-- Хранит состояние рабочего пространства: окна, группы, вкладки, раскладки и размеры. Пишет слепок сессии на диск (`session.json`).
-- Слушает Unix-сокет, доступный только владельцу. Через него повторный запуск `alexterminal` открывает вкладку в уже запущенном приложении, а `alexterminal list` показывает его состояние.
+- Quitting or closing the last window ends all shell processes. If a command is running, the app asks for confirmation.
+- The server saves a snapshot before exit. On the next launch, AlexTerminal restores windows, tabs, working directories, and recent output, then starts fresh shells.
+- When other windows remain open, closing a window detaches its tabs by default. You can restore them from the command palette while the app is running.
 
-**Жизненный цикл:**
+Before version 0.3, `alexterminal-server` ran as a separate background process. Version 0.3 integrates the server into the app, so server updates take effect when you restart the app. To keep a shell session alive after closing AlexTerminal, run `tmux` or `screen` inside a pane.
 
-- Сессии живут, пока запущено приложение. Выход (`⌘Q`) и закрытие последнего окна завершают все shell-процессы. Если что-то выполняется, приложение сначала спросит подтверждение.
-- Перед выходом сервер сохраняет слепок. Следующий запуск восстанавливает окна, вкладки, папки и последние строки вывода, а shell запускает заново.
-- Закрытое окно, когда открыты другие, по умолчанию оставляет вкладки отсоединёнными. Их можно вернуть через палитру команд, пока приложение запущено.
-
-**Почему сервер не отдельный процесс.** До версии 0.3 сервер был фоновым процессом `alexterminal-server` и переживал закрытие окон, как `tmux`. От этого отказались: остался один бинарник, нет автозапуска при входе и «осиротевших» процессов, а исправления в обработке вывода начинают работать сразу после обновления, без ручного перезапуска сервера. Новая версия сама находит старый `alexterminal-server`, просит его сохранить сессию, останавливает и восстанавливает сессию из слепка. Если нужны сессии, которые переживают закрытие терминала, запускайте `tmux` или `screen` внутри панели.
-
-## Командная строка
+## Command line
 
 ```bash
 alexterminal --working-directory ~/src/project
-```
-
-```bash
 alexterminal --profile prod
-```
-
-```bash
 alexterminal list
 ```
 
-Если окно уже открыто, `alexterminal` с аргументами добавляет вкладку в него, а не запускает второе приложение.
+If a window is already open, invoking `alexterminal` with a working directory or profile adds a tab to the running app.
 
-## Решение проблем
+## Troubleshooting
 
-- **После обновления с версии до 0.3.** Новая версия сама останавливает старый `alexterminal-server` и восстанавливает сессию из слепка. Shell-процессы при этом перезапускаются в тех же папках. Старый бинарник `alexterminal-server` больше не нужен, его можно удалить. Если раньше был включён автозапуск сервера, удалите `~/Library/LaunchAgents/pro.odinai.alexterminal.server.plist` (macOS) или `~/.config/systemd/user/alexterminal-server.service` (Linux).
-
-- **Второй независимый экземпляр.** Переменная `ALEXTERMINAL_HOME` переносит настройки, данные, логи и сокет в отдельный каталог:
+- **Upgrading from a version earlier than 0.3.** AlexTerminal asks the legacy `alexterminal-server` to save its session, stops it, and restores the snapshot. Shells restart in the same directories. You can remove the old binary and any autostart entry at `~/Library/LaunchAgents/pro.odinai.alexterminal.server.plist` on macOS or `~/.config/systemd/user/alexterminal-server.service` on Linux.
+- **Run an independent instance.** Set `ALEXTERMINAL_HOME` to store settings, data, logs, and the socket in a separate directory.
 
   ```bash
   ALEXTERMINAL_HOME=/tmp/at-test alexterminal
   ```
 
-- **Подробные логи.** Уровень логов задаётся переменной окружения:
+- **Enable debug logging.** Set the log level with `ALEXTERMINAL_LOG`.
 
   ```bash
   ALEXTERMINAL_LOG=debug alexterminal
   ```
 
-## Известные ограничения
+## Known limitations
 
-- В нативном меню macOS есть только стандартное меню приложения с пунктом «Выйти» (`⌘Q`). Остальные действия доступны через палитру команд, горячие клавиши и контекстное меню вкладки.
-- Закрытие последнего окна завершает приложение и на macOS, вместе со всеми сессиями.
-- Папка в заголовке панели обновляется при показе приглашения shell. Если в одной строке выполнить `cd` и долгую команду, папка сменится после её завершения.
-- После аварийного завершения приложения восстанавливается структура и папки, а вывод — только до последнего автосохранения (по умолчанию раз в 30 секунд).
+- On macOS, the native menu contains the standard application menu with Quit (`⌘Q`). Other actions are available through the command palette, keyboard shortcuts, and the tab context menu.
+- Closing the last window quits the app and ends all sessions, including on macOS.
+- The directory in a pane's title updates when the shell displays a prompt. If you run `cd` and a long command on the same line, the directory updates when that command finishes.
+- After a crash, AlexTerminal restores the workspace layout and working directories. Recovered output is limited to the last autosave, which runs every 30 seconds by default.
 
-## Устройство проекта
+## Project structure
 
-| Крейт | Назначение |
-|---|---|
-| `at-core` | Модель окон, групп и вкладок, конфиг, темы, горячие клавиши, история, слепок |
-| `at-proto` | Протокол между окном и сервером: MessagePack с префиксом длины |
-| `at-term` | Панель: PTY, эмулятор `alacritty_terminal`, shell-интеграция, кодирование ввода, данные о процессах |
-| `at-daemon` | Сервер сессий, работает потоком в процессе приложения |
-| `at-client` | Запуск сервера сессий, поиск уже запущенного приложения, остановка старого `alexterminal-server` |
-| `at-app` | Интерфейс на iced 0.14 и бинарник `alexterminal` |
+| Crate | Purpose |
+| --- | --- |
+| `at-core` | Window, group, and tab models, configuration, themes, shortcuts, command history, and session snapshots |
+| `at-proto` | Length-prefixed MessagePack protocol between the UI and the session server |
+| `at-term` | Pane runtime with PTY, `alacritty_terminal` emulation, shell integration, input encoding, and process information |
+| `at-daemon` | Session server that runs in a thread inside the app |
+| `at-client` | Session server startup, discovery of running instances, and legacy server shutdown |
+| `at-app` | iced 0.14 interface and the `alexterminal` binary |
 
-Скрипты shell-интеграции лежат в `assets/shell/`, переводы — в `locales/en` и `locales/ru`. Техническое задание и принятые решения описаны в [SPEC.md](SPEC.md).
+Shell integration scripts are in `assets/shell/`. Translations are in `locales/en` and `locales/ru`. Requirements and design decisions are in the [technical specification](SPEC.md).
 
-## Лицензия
+## License
 
-MIT или Apache-2.0 на ваш выбор, как указано в `Cargo.toml`. Шрифт JetBrains Mono распространяется по SIL Open Font License 1.1.
+AlexTerminal is available under either the [MIT License](LICENSE-MIT) or the [Apache License, Version 2.0](LICENSE-APACHE), at your option. The workspace declares this as `MIT OR Apache-2.0` in [Cargo.toml](Cargo.toml).
+
+JetBrains Mono is distributed separately under the SIL Open Font License 1.1.
